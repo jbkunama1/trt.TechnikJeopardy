@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Admin - Technik-Jeopardy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+<body class="bg">
+  <header class="header">
+    <h1>Admin - Fragenpool</h1>
+    <p><a href="{{ url_for('play') }}" class="link">Zum Spiel</a></p>
+  </header>
+  <main class="main">
+    <section class="admin-actions">
+      <a class="btn-primary" href="{{ url_for('admin_new') }}">Neue Frage anlegen</a>
+    </section>
+    <section class="admin-table-wrapper">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Kategorie</th>
+            <th>Punkte</th>
+            <th>Frage</th>
+            <th>Klasse</th>
+            <th>Kompetenzbereich</th>
+            <th>Aktionen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for q in questions %}
+          <tr>
+            <td>{{ q.id }}</td>
+            <td>{{ q.category_name }}</td>
+            <td>{{ q.points }}</td>
+            <td>{{ q.question_text }}</td>
+            <td>{{ q.grade_level }}</td>
+            <td>{{ q.competence_area }}</td>
+            <td>
+              <a href="{{ url_for('admin_edit', qid=q.id) }}">Bearbeiten</a>
+              <form action="{{ url_for('admin_delete', qid=q.id) }}" method="post" style="display:inline" onsubmit="return confirm('Wirklich loeschen?');">
+                <button type="submit">Loeschen</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

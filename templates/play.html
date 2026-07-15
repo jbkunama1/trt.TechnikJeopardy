@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Technik-Jeopardy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+<body class="bg">
+  <header class="header">
+    <h1>Jeopardy - Technikunterricht</h1>
+    <p>Bildungsplan 2016 - Werkstoffe, Systeme, Mensch &amp; Technik</p>
+  </header>
+  <main class="main">
+    <section class="gameboard">
+      {% for cid, col in gameboard.items() %}
+        <div class="category">
+          <div class="category-title">{{ col.category_name }}</div>
+          {% for q in col.questions %}
+            <button class="question-tile" data-question-id="{{ q.id }}">{{ q.points }}</button>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </section>
+  </main>
+
+  <div id="question-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2 id="modal-question"></h2>
+      <button id="show-answer" class="btn-primary">Antwort anzeigen</button>
+      <p id="modal-answer" class="hidden"></p>
+      <button id="close-modal" class="btn-secondary">Schliessen</button>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='play.js') }}"></script>
+</body>
+</html>

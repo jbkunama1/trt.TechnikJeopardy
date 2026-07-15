@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  trt-technikjeopardy:
+    image: python:3.11-slim
+    container_name: trt-technikjeopardy
+    working_dir: /app
+    volumes:
+      - ./:/app
+    ports:
+      - "5000:5000"
+    command: sh -c "pip install -r requirements.txt && python app.py"
+    environment:
+      - FLASK_ENV=production
+      - PORT=5000
+    restart: unless-stopped

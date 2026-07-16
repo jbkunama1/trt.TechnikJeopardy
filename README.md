@@ -2,7 +2,7 @@
 
 ![trt.TechnikJeopardy Logo](./trtTechnikJeopardy_Logo.png)
 
-Jeopardy-Webapp fuer den Technikunterricht (Bildungsplan Baden-Wuerttemberg 2016, Sekundarstufe I). Modernes, responsives Spielfeld fuer den Klassenraum, Admin-Oberflaeche mit SQLite-Anbindung, Fragenpool mit 300 Fragen.
+Jeopardy-Webapp fuer den Technikunterricht (Bildungsplan Baden-Wuerttemberg 2016, Sekundarstufe I). Modernes, responsives Spielfeld fuer den Klassenraum, Admin-Oberflaeche mit SQLite-Anbindung, Fragenpool mit 750 Fragen fuer Klasse 6 bis 10.
 
 ## Inhaltsverzeichnis
 
@@ -19,10 +19,10 @@ Jeopardy-Webapp fuer den Technikunterricht (Bildungsplan Baden-Wuerttemberg 2016
 
 - **Jeopardy-Spieloberflaeche**: Kategorien und Punktefelder auf einem responsiven Board.
 - **Teammodus**: Anzahl Teams festlegen, Namen vergeben, Punkte direkt im Spiel verteilen.
-- **Klassenstufen-Filter**: Optionaler Filter im Team-Setup (Klasse 7-10).
+- **Klassenstufen-Filter**: Optionaler Filter im Team-Setup (Klasse 6-10).
 - **Admin-Bereich**: Uebersicht, Anlegen/Bearbeiten/Loeschen von Fragen â€” durch Basic-Auth geschuetzt.
 - **SQLite-Anbindung**: Alle Fragen liegen in einer lokalen `jeopardy.db`, wird beim ersten Start automatisch angelegt und befuellt.
-- **Fragenpool**: 300 vorbereitete Fragen nach Bildungsplan Technik 2016 BW fuer Klasse 7 bis 10.
+- **Fragenpool**: 750 vorbereitete Fragen nach Bildungsplan Technik 2016 BW fuer Klasse 6 bis 10.
 - **Docker/Portainer-Support**: Fertiger `docker-compose.yml`-Stack.
 
 ## Installation (lokal)
@@ -58,7 +58,7 @@ In der `docker-compose.yml` unbedingt `ADMIN_USER` und `ADMIN_PASSWORD` als Umge
 
 ## Fragenpool
 
-Im Repo liegen `seed_questions.sql` (100 Fragen) und `seed_questions_extra.sql` (200 Fragen, 50 je Klassenstufe 7-10) mit insgesamt 300 Fragen. Der Import erfolgt automatisch bei einer frischen Datenbank.
+Im Repo liegen `seed_questions.sql` (100 Fragen), `seed_questions_extra.sql` (200 Fragen, 50 je Klassenstufe 7-10), `seed_questions_more.sql` (200 Fragen: 50 fuer Klasse 6, je 30 zusaetzlich fuer Klasse 7-10) und `seed_questions_round3.sql` (250 weitere Fragen: 40 fuer Klasse 6, je ca. 52-53 fuer Klasse 7-10) mit insgesamt 750 Fragen. Der Import erfolgt automatisch bei einer frischen Datenbank.
 
 DB bewusst neu aufbauen:
 
@@ -89,7 +89,7 @@ Werden diese nicht gesetzt, greifen die Standardwerte `admin` / `technik2016` â€
 
 ## Klassenstufen-Format
 
-Die 100 urspruenglichen Fragen nutzen teilweise Klassenstufen-Bereiche (`7-8`, `8-9`, `9-10`), die 200 neuen Fragen nutzen Einzelklassen (`7`, `8`, `9`, `10`). Der Klassenstufen-Filter im Spiel (Team-Setup) beruecksichtigt beide Formate: Eine Frage mit `grade_level = "7-8"` erscheint z. B. sowohl bei Filter "Klasse 7" als auch "Klasse 8".
+Die 100 urspruenglichen Fragen nutzen teilweise Klassenstufen-Bereiche (`7-8`, `8-9`, `9-10`), alle 400 neuen Fragen (inkl. Klasse 6) nutzen Einzelklassen (`6`, `7`, `8`, `9`, `10`). Der Klassenstufen-Filter im Spiel (Team-Setup) beruecksichtigt beide Formate: Eine Frage mit `grade_level = "7-8"` erscheint z. B. sowohl bei Filter "Klasse 7" als auch "Klasse 8".
 
 ## Lizenz
 

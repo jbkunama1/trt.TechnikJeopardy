@@ -9,6 +9,8 @@ BASE_DIR = os.path.dirname(__file__)
 SEED_FILES = [
     os.path.join(BASE_DIR, "seed_questions.sql"),
     os.path.join(BASE_DIR, "seed_questions_extra.sql"),
+    os.path.join(BASE_DIR, "seed_questions_more.sql"),
+    os.path.join(BASE_DIR, "seed_questions_round3.sql"),
 ]
 
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")

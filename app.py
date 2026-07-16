@@ -17,6 +17,8 @@ ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "technik2016")
 DEBUG_MODE = os.environ.get("FLASK_DEBUG", "0") == "1"
 
+DEFAULT_POINT_LEVELS = "100,200,300,400,500"
+
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -83,6 +85,12 @@ def init_db():
         "FOREIGN KEY (category_id) REFERENCES categories(id))"
     )
 
+    cur.execute(
+        "CREATE TABLE IF NOT EXISTS settings ("
+        "key TEXT PRIMARY KEY, "
+        "value TEXT NOT NULL)"
+    )
+
     cur.execute("SELECT COUNT(*) AS c FROM categories")
     if cur.fetchone()["c"] == 0:
         categories = [
@@ -97,23 +105,53 @@ def init_db():
         )
         conn.commit()
 
+    cur.execute("SELECT COUNT(*) AS c FROM settings WHERE key = 'shuffle_enabled'")
+    if cur.fetchone()["c"] == 0:
+        cur.execute("INSERT INTO settings (key, value) VALUES ('shuffle_enabled', '1')")
+    cur.execute("SELECT COUNT(*) AS c FROM settings WHERE key = 'point_levels'")
+    if cur.fetchone()["c"] == 0:
+        cur.execute(
+            "INSERT INTO settings (key, value) VALUES ('point_levels', ?)",
+            (DEFAULT_POINT_LEVELS,),
+        )
+    conn.commit()
+
     run_seed_files(conn)
     conn.close()
 
 
-def grade_matches(grade_level, selected_grade):
-    """
-    Konsistente Klassenstufen-Filterung: Das Datenmodell enthaelt sowohl
-    Einzelklassen ('7', '8', '9', '10') als auch historische Bereiche
-    ('7-8', '8-9', '9-10'). Statt die Bestandsdaten destruktiv zu migrieren,
-    wird hier robust per Teilstring gegen die ausgewaehlte Klassenstufe
-    geprueft, damit der Filter fuer beide Formate zuverlaessig funktioniert.
-    """
-    if not selected_grade:
-        return True
-    if not grade_level:
-        return False
-    return selected_grade in [part.strip() for part in grade_level.replace("-", ",").split(",")]
+def get_setting(key, default=""):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT value FROM settings WHERE key = ?", (key,))
+    row = cur.fetchone()
+    conn.close()
+    return row["value"] if row else default
+
+
+def set_setting(key, value):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO settings (key, value) VALUES (?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (key, value),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_point_levels():
+    raw = get_setting("point_levels", DEFAULT_POINT_LEVELS)
+    try:
+        levels = [int(p.strip()) for p in raw.split(",") if p.strip()]
+        return levels if levels else [int(p) for p in DEFAULT_POINT_LEVELS.split(",")]
+    except ValueError:
+        return [int(p) for p in DEFAULT_POINT_LEVELS.split(",")]
+
+
+def is_shuffle_enabled():
+    return get_setting("shuffle_enabled", "1") == "1"
 
 
 @app.route("/")
@@ -126,31 +164,36 @@ def play():
     init_db()
     conn = get_db()
     cur = conn.cursor()
-    cur.execute(
-        "SELECT c.id AS category_id, c.name AS category_name, "
-        "q.id AS question_id, q.points, q.question_text, q.grade_level "
-        "FROM categories c "
-        "LEFT JOIN questions q ON q.category_id = c.id "
-        "ORDER BY c.id, q.points"
-    )
-    rows = cur.fetchall()
-    conn.close()
+
+    cur.execute("SELECT id, name FROM categories ORDER BY id")
+    categories = cur.fetchall()
+
+    point_levels = get_point_levels()
+    shuffle = is_shuffle_enabled()
+    order_clause = "ORDER BY RANDOM() LIMIT 1" if shuffle else "ORDER BY id LIMIT 1"
 
     gameboard = {}
-    for row in rows:
-        cid = row["category_id"]
-        if cid not in gameboard:
-            gameboard[cid] = {"category_name": row["category_name"], "questions": []}
-        if row["question_id"] is not None:
-            gameboard[cid]["questions"].append(
-                {
-                    "id": row["question_id"],
-                    "points": row["points"],
-                    "text": row["question_text"],
-                    "grade_level": row["grade_level"],
-                }
+    for cat in categories:
+        cid = cat["id"]
+        gameboard[cid] = {"category_name": cat["name"], "questions": []}
+        for pts in point_levels:
+            cur.execute(
+                "SELECT id, points, question_text, grade_level "
+                "FROM questions WHERE category_id = ? AND points = ? " + order_clause,
+                (cid, pts),
             )
+            row = cur.fetchone()
+            if row:
+                gameboard[cid]["questions"].append(
+                    {
+                        "id": row["id"],
+                        "points": row["points"],
+                        "text": row["question_text"],
+                        "grade_level": row["grade_level"],
+                    }
+                )
 
+    conn.close()
     return render_template(
         "play.html",
         gameboard=gameboard,
@@ -199,6 +242,29 @@ def admin():
 
     conn.close()
     return render_template("admin.html", questions=questions, categories=categories)
+
+
+@app.route("/admin/settings", methods=["GET", "POST"])
+@requires_admin_auth
+def admin_settings():
+    init_db()
+    if request.method == "POST":
+        shuffle_enabled = "1" if request.form.get("shuffle_enabled") == "on" else "0"
+        raw_levels = request.form.get("point_levels", DEFAULT_POINT_LEVELS)
+        cleaned = [p.strip() for p in raw_levels.split(",") if p.strip().isdigit()]
+        point_levels = ",".join(cleaned) if cleaned else DEFAULT_POINT_LEVELS
+
+        set_setting("shuffle_enabled", shuffle_enabled)
+        set_setting("point_levels", point_levels)
+        return redirect(url_for("admin_settings"))
+
+    current_shuffle = is_shuffle_enabled()
+    current_levels = get_setting("point_levels", DEFAULT_POINT_LEVELS)
+    return render_template(
+        "admin_settings.html",
+        shuffle_enabled=current_shuffle,
+        point_levels=current_levels,
+    )
 
 
 @app.route("/admin/new", methods=["GET", "POST"])

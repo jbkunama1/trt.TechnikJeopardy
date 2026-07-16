@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Spiel-Einstellungen &mdash; trt.TechnikJeopardy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+<body class="bg">
+  <header class="header">
+    <h1>&#9881; Spiel-Einstellungen</h1>
+    <p><a class="link" href="{{ url_for('admin') }}">&larr; Zurueck zum Adminbereich</a></p>
+  </header>
+
+  <main class="main">
+    <form class="form" method="post" style="max-width:500px">
+      <label>
+        <input type="checkbox" name="shuffle_enabled" {% if shuffle_enabled %}checked{% endif %}>
+        Fragen bei jedem Spielstart neu zufaellig mischen
+      </label>
+
+      <label>
+        Punktestufen pro Kategorie (kommagetrennt, in Punkten):
+        <input type="text" name="point_levels" value="{{ point_levels }}" placeholder="100,200,300,400,500">
+      </label>
+
+      <p style="font-size:0.85rem;opacity:0.75">
+        Beispiel: <code>100,200,300,400,500</code> erzeugt pro Kategorie 5 Felder.
+        Bei aktiviertem Mischen wird pro Feld jedes Mal eine zufaellige passende
+        Frage aus dem Fragenpool gezogen. Ist das Mischen deaktiviert, wird
+        immer die gleiche (aelteste passende) Frage angezeigt.
+      </p>
+
+      <button type="submit" class="btn-primary" style="align-self:flex-start">Speichern</button>
+    </form>
+  </main>
+</body>
+</html>

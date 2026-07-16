@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
+from flask import Flask, render_template, request, redirect, url_for, jsonify, Response, send_from_directory
 from functools import wraps
 import sqlite3
 import os
@@ -157,6 +157,11 @@ def is_shuffle_enabled():
 @app.route("/")
 def index():
     return redirect(url_for("play"))
+
+
+@app.route("/trtTechnikJeopardy_Logo.png")
+def logo():
+    return send_from_directory(BASE_DIR, "trtTechnikJeopardy_Logo.png")
 
 
 @app.route("/play")

@@ -2,15 +2,12 @@ version: "3.9"
 
 services:
   trt-technikjeopardy:
-    image: python:3.11-slim
+    build: .
     container_name: trt-technikjeopardy
-    working_dir: /app
     volumes:
-      - ./:/app
       - trt_jeopardy_db:/app/data
     ports:
       - "5050:5000"
-    command: sh -c "pip install --no-cache-dir -r requirements.txt && python app.py"
     environment:
       - FLASK_DEBUG=0
       - PORT=5000

@@ -7,12 +7,44 @@
   <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
 </head>
 <body class="bg">
+
+  <!-- ===== TEAM-SETUP MODAL ===== -->
+  <div id="setup-modal" class="modal-backdrop">
+    <div class="modal setup-modal-inner">
+      <h2 style="margin-top:0">&#127942; Teams konfigurieren</h2>
+      <label class="setup-label">
+        Anzahl Teams (1–6):
+        <input id="team-count" type="number" min="1" max="6" value="2" style="width:60px;margin-left:.5rem">
+      </label>
+      <div id="team-name-inputs" style="margin-top:.75rem;display:flex;flex-direction:column;gap:.4rem"></div>
+      <label class="setup-label" style="margin-top:.75rem">
+        Klassenstufe (optional):
+        <select id="grade-filter" style="margin-left:.5rem">
+          <option value="">Alle</option>
+          <option value="7">Klasse 7</option>
+          <option value="8">Klasse 8</option>
+          <option value="9">Klasse 9</option>
+          <option value="10">Klasse 10</option>
+        </select>
+      </label>
+      <div style="margin-top:1.25rem">
+        <button id="start-game" class="btn-primary">&#9654; Spiel starten</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HEADER ===== -->
   <header class="header">
-    <h1>Jeopardy - Technikunterricht</h1>
-    <p>Bildungsplan 2016 - Werkstoffe, Systeme, Mensch &amp; Technik</p>
+    <h1>Jeopardy &mdash; Technikunterricht</h1>
+    <p>Bildungsplan 2016 &mdash; Werkstoffe, Systeme, Mensch &amp; Technik</p>
+    <button id="settings-btn" class="btn-secondary" style="margin-top:.5rem">&#9881; Teams &amp; Einstellungen</button>
   </header>
+
+  <!-- ===== SCOREBOARD ===== -->
+  <div id="scoreboard" class="scoreboard"></div>
+
   <main class="main">
-    <section class="gameboard">
+    <section class="gameboard" id="gameboard">
       {% for cid, col in gameboard.items() %}
         <div class="category">
           <div class="category-title">{{ col.category_name }}</div>
@@ -24,12 +56,22 @@
     </section>
   </main>
 
+  <!-- ===== FRAGEN-MODAL ===== -->
   <div id="question-modal" class="modal-backdrop hidden">
     <div class="modal">
-      <h2 id="modal-question"></h2>
+      <div id="modal-grade-badge" class="grade-badge"></div>
+      <h2 id="modal-question" style="margin-top:.5rem"></h2>
       <button id="show-answer" class="btn-primary">Antwort anzeigen</button>
-      <p id="modal-answer" class="hidden"></p>
-      <button id="close-modal" class="btn-secondary">Schliessen</button>
+      <p id="modal-answer" class="hidden" style="margin-top:.75rem"></p>
+
+      <!-- Punkte-Vergabe -->
+      <div id="points-section" class="hidden points-section">
+        <p style="margin:.75rem 0 .4rem;font-weight:600">Punkte vergeben an:</p>
+        <div id="team-score-buttons"></div>
+        <button id="no-points-btn" class="btn-secondary" style="margin-top:.5rem">Niemand &mdash; schliessen</button>
+      </div>
+
+      <button id="close-modal" class="btn-secondary" style="margin-top:.75rem">Schliessen</button>
     </div>
   </div>
 

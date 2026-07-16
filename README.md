@@ -50,11 +50,60 @@ Beim ersten Start werden `jeopardy.db`, die Grundtabellen sowie beide Seed-Datei
 
 ## Installation mit Docker / Portainer
 
+### Docker Compose (CLI)
+
 ```bash
 docker compose up -d
 ```
 
-In der `docker-compose.yml` unbedingt `ADMIN_USER` und `ADMIN_PASSWORD` als Umgebungsvariablen setzen, bevor der Stack im Schulnetz laeuft.
+Der Service ist danach unter `http://localhost:5000` erreichbar.
+
+### Portainer-Stack (empfohlen fuer Schulserver)
+
+1. In Portainer zu **Stacks** wechseln und **Add stack** waehlen.
+2. Namen vergeben, z. B. `trt-technikjeopardy`.
+3. Als **Build method** "Web editor" waehlen und den Inhalt der `docker-compose.yml` einfuegen (siehe unten).
+4. Unter **Environment variables** unbedingt `ADMIN_USER` und `ADMIN_PASSWORD` mit eigenen, sicheren Werten ueberschreiben.
+5. **Deploy the stack** klicken.
+6. Nach dem Deploy ist die App unter `http://<server-ip>:5000` erreichbar.
+
+Die `docker-compose.yml`:
+
+```yaml
+version: "3.9"
+
+services:
+  trt-technikjeopardy:
+    image: python:3.11-slim
+    container_name: trt-technikjeopardy
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - trt_jeopardy_db:/app/data
+    ports:
+      - "5000:5000"
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python app.py"
+    environment:
+      - FLASK_DEBUG=0
+      - PORT=5000
+      - ADMIN_USER=admin
+      - ADMIN_PASSWORD=bitte-aendern
+    restart: unless-stopped
+
+volumes:
+  trt_jeopardy_db:
+```
+
+> Hinweis: Das Repo wird per Bind-Mount (`./:/app`) eingebunden, damit Code-Updates per `git pull` sofort greifen. Die `jeopardy.db` bleibt durch das benannte Volume `trt_jeopardy_db` auch nach einem Container-Neustart erhalten.
+
+#### Stack-Update nach Code-Aenderungen
+
+```bash
+git pull
+docker compose up -d --force-recreate
+```
+
+In Portainer: Stack oeffnen -> **Pull and redeploy** bzw. **Update the stack**.
 
 ## Fragenpool
 

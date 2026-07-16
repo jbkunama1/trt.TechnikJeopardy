@@ -42,6 +42,7 @@ const teamCountInput = document.getElementById('team-count');
 const teamNameInputs = document.getElementById('team-name-inputs');
 const startBtn = document.getElementById('start-game');
 const settingsBtn = document.getElementById('settings-btn');
+const gradeFilterSelect = document.getElementById('grade-filter');
 
 function buildNameInputs() {
   const n = parseInt(teamCountInput.value) || 2;
@@ -74,19 +75,24 @@ settingsBtn.addEventListener('click', () => {
 });
 
 // ===== GRADE FILTER =====
-function applyGradeFilter() {
-  const grade = document.getElementById('grade-filter').value;
-  document.querySelectorAll('.question-tile').forEach(tile => {
-    if (!tile.disabled) {
-      // store original display
-      tile.style.display = '';
-    }
-  });
-  if (!grade) return;
-  // We need grade info per tile; fetch via API on hover is too slow.
-  // Instead filter tiles: already answered tiles stay hidden.
-  // Grade filter is a best-effort visual hint on setup screen only.
+// Konsistente Filterlogik: unterstuetzt sowohl Einzelklassen ('7')
+// als auch historische Bereiche ('7-8', '8-9', '9-10') im gleichen Datenbestand.
+function gradeMatches(gradeLevel, selectedGrade) {
+  if (!selectedGrade) return true;
+  if (!gradeLevel) return false;
+  return gradeLevel.split('-').map(p => p.trim()).includes(selectedGrade);
 }
+
+function applyGradeFilter() {
+  const grade = gradeFilterSelect.value;
+  document.querySelectorAll('.question-tile').forEach(tile => {
+    if (tile.disabled) return;
+    const tileGrade = tile.dataset.gradeLevel || '';
+    tile.style.display = gradeMatches(tileGrade, grade) ? '' : 'none';
+  });
+}
+
+gradeFilterSelect.addEventListener('change', applyGradeFilter);
 
 // ===== QUESTION MODAL =====
 const modal = document.getElementById('question-modal');
@@ -165,7 +171,6 @@ document.querySelectorAll('.question-tile').forEach(tile => {
 loadTeams();
 buildNameInputs();
 if (!teams.length) {
-  // Show setup on first load
   setupModal.classList.remove('hidden');
 } else {
   setupModal.classList.add('hidden');

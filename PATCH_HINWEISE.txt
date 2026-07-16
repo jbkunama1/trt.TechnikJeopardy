@@ -1,0 +1,45 @@
+HINWEIS ZUM PATCH - trt.TechnikJeopardy
+=========================================
+
+Diese ZIP enthaelt NUR die geaenderten/neuen Dateien fuer den Sicherheits- und
+Konsistenz-Fix. Alle anderen Dateien (seed_questions.sql, seed_questions_extra.sql,
+requirements.txt, docker-compose.yml, LICENSE, templates/admin*.html,
+trtTechnikJeopardy_Logo.png) bleiben unveraendert und muessen NICHT ersetzt werden.
+
+Geaenderte / neue Dateien in dieser ZIP:
+- app.py                  -> Basic-Auth fuer /admin, debug=False Standard, Auto-Seed
+- .gitignore              -> NEU: schuetzt jeopardy.db, .venv, __pycache__ etc.
+- README.md               -> Logo eingebunden, 300 Fragen dokumentiert, Sicherheitshinweise
+- index.html              -> Logo eingebunden, 300 Fragen dokumentiert
+- templates/play.html     -> Logo im Header, Klassenstufen-Attribut pro Frage-Kachel
+- static/play.js          -> Konsistente Klassenstufen-Filterlogik (Einzelklasse + Bereich)
+- static/styles.css       -> .app-logo Klasse ergaenzt
+
+SO SPIELST DU DEN PATCH EIN:
+1. ZIP entpacken.
+2. Alle Dateien 1:1 in dein bestehendes Repo trt.TechnikJeopardy kopieren
+   (Ordnerstruktur beibehalten: app.py und .gitignore ins Root,
+   play.html nach templates/, play.js und styles.css nach static/).
+3. WICHTIG - Admin-Zugangsdaten setzen, bevor du die App im Schulnetz startest:
+   export ADMIN_USER="dein_benutzername"
+   export ADMIN_PASSWORD="ein_sicheres_passwort"
+   Ohne diese Variablen gelten die Standardwerte admin / technik2016 -
+   die stehen jetzt aber OEFFENTLICH in diesem Chat/Repo und sind NICHT sicher!
+4. Danach ganz normal committen und pushen:
+   git add app.py .gitignore README.md index.html templates/play.html static/play.js static/styles.css
+   git commit -m "fix: secure school deployment, auto-seed questions, unify grade filter, add logo"
+   git push origin main
+
+SICHERHEITS- UND KONSISTENZ-FIXES IM DETAIL:
+- Admin-Bereich (/admin, /admin/new, /admin/edit, /admin/delete) ist jetzt per
+  HTTP Basic-Auth geschuetzt (Standardwerte nur als Fallback, unbedingt aendern!).
+- debug=False ist jetzt Standard. Nur mit FLASK_DEBUG=1 als Umgebungsvariable
+  wird der Debugger aktiviert - niemals im Schulnetz oder online setzen.
+- app.py importiert seed_questions.sql und seed_questions_extra.sql automatisch,
+  wenn die Datenbank noch keine Fragen enthaelt (kein manueller sqlite3-Import mehr noetig).
+- Klassenstufen-Filter im Spiel funktioniert jetzt zuverlaessig fuer BEIDE
+  vorhandenen Datenformate (Einzelklasse '7'-'10' und Altbereich '7-8', '8-9', '9-10').
+- .gitignore verhindert, dass jeopardy.db, __pycache__ und .venv versehentlich
+  ins Repo committet werden.
+- Logo trtTechnikJeopardy_Logo.png wird jetzt in App-Header, README und
+  Landing-Page (index.html) angezeigt (Datei selbst bleibt unveraendert im Root).

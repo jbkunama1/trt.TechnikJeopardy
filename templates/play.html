@@ -8,7 +8,6 @@
 </head>
 <body class="bg">
 
-  <!-- ===== TEAM-SETUP MODAL ===== -->
   <div id="setup-modal" class="modal-backdrop">
     <div class="modal setup-modal-inner">
       <h2 style="margin-top:0">&#127942; Teams konfigurieren</h2>
@@ -33,14 +32,13 @@
     </div>
   </div>
 
-  <!-- ===== HEADER ===== -->
   <header class="header">
+    <img src="{{ root_logo_path }}" alt="trt.TechnikJeopardy Logo" class="app-logo">
     <h1>Jeopardy &mdash; Technikunterricht</h1>
     <p>Bildungsplan 2016 &mdash; Werkstoffe, Systeme, Mensch &amp; Technik</p>
     <button id="settings-btn" class="btn-secondary" style="margin-top:.5rem">&#9881; Teams &amp; Einstellungen</button>
   </header>
 
-  <!-- ===== SCOREBOARD ===== -->
   <div id="scoreboard" class="scoreboard"></div>
 
   <main class="main">
@@ -49,14 +47,13 @@
         <div class="category">
           <div class="category-title">{{ col.category_name }}</div>
           {% for q in col.questions %}
-            <button class="question-tile" data-question-id="{{ q.id }}">{{ q.points }}</button>
+            <button class="question-tile" data-question-id="{{ q.id }}" data-grade-level="{{ q.grade_level or '' }}">{{ q.points }}</button>
           {% endfor %}
         </div>
       {% endfor %}
     </section>
   </main>
 
-  <!-- ===== FRAGEN-MODAL ===== -->
   <div id="question-modal" class="modal-backdrop hidden">
     <div class="modal">
       <div id="modal-grade-badge" class="grade-badge"></div>
@@ -64,7 +61,6 @@
       <button id="show-answer" class="btn-primary">Antwort anzeigen</button>
       <p id="modal-answer" class="hidden" style="margin-top:.75rem"></p>
 
-      <!-- Punkte-Vergabe -->
       <div id="points-section" class="hidden points-section">
         <p style="margin:.75rem 0 .4rem;font-weight:600">Punkte vergeben an:</p>
         <div id="team-score-buttons"></div>

@@ -1,15 +1,60 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
+from functools import wraps
 import sqlite3
 import os
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 DB_PATH = os.path.join(os.path.dirname(__file__), "jeopardy.db")
+BASE_DIR = os.path.dirname(__file__)
+SEED_FILES = [
+    os.path.join(BASE_DIR, "seed_questions.sql"),
+    os.path.join(BASE_DIR, "seed_questions_extra.sql"),
+]
+
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "technik2016")
+DEBUG_MODE = os.environ.get("FLASK_DEBUG", "0") == "1"
 
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def check_auth(username, password):
+    return username == ADMIN_USER and password == ADMIN_PASSWORD
+
+
+def authenticate():
+    return Response(
+        "Zugriff auf den Adminbereich erfordert eine Anmeldung.",
+        401,
+        {"WWW-Authenticate": 'Basic realm="trt.TechnikJeopardy Admin"'},
+    )
+
+
+def requires_admin_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
+
+
+def run_seed_files(conn):
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) AS c FROM questions")
+    if cur.fetchone()["c"] > 0:
+        return
+
+    for seed_file in SEED_FILES:
+        if os.path.exists(seed_file):
+            with open(seed_file, "r", encoding="utf-8") as f:
+                conn.executescript(f.read())
+    conn.commit()
 
 
 def init_db():
@@ -50,7 +95,23 @@ def init_db():
         )
         conn.commit()
 
+    run_seed_files(conn)
     conn.close()
+
+
+def grade_matches(grade_level, selected_grade):
+    """
+    Konsistente Klassenstufen-Filterung: Das Datenmodell enthaelt sowohl
+    Einzelklassen ('7', '8', '9', '10') als auch historische Bereiche
+    ('7-8', '8-9', '9-10'). Statt die Bestandsdaten destruktiv zu migrieren,
+    wird hier robust per Teilstring gegen die ausgewaehlte Klassenstufe
+    geprueft, damit der Filter fuer beide Formate zuverlaessig funktioniert.
+    """
+    if not selected_grade:
+        return True
+    if not grade_level:
+        return False
+    return selected_grade in [part.strip() for part in grade_level.replace("-", ",").split(",")]
 
 
 @app.route("/")
@@ -65,7 +126,7 @@ def play():
     cur = conn.cursor()
     cur.execute(
         "SELECT c.id AS category_id, c.name AS category_name, "
-        "q.id AS question_id, q.points, q.question_text "
+        "q.id AS question_id, q.points, q.question_text, q.grade_level "
         "FROM categories c "
         "LEFT JOIN questions q ON q.category_id = c.id "
         "ORDER BY c.id, q.points"
@@ -80,10 +141,19 @@ def play():
             gameboard[cid] = {"category_name": row["category_name"], "questions": []}
         if row["question_id"] is not None:
             gameboard[cid]["questions"].append(
-                {"id": row["question_id"], "points": row["points"], "text": row["question_text"]}
+                {
+                    "id": row["question_id"],
+                    "points": row["points"],
+                    "text": row["question_text"],
+                    "grade_level": row["grade_level"],
+                }
             )
 
-    return render_template("play.html", gameboard=gameboard)
+    return render_template(
+        "play.html",
+        gameboard=gameboard,
+        root_logo_path="/trtTechnikJeopardy_Logo.png",
+    )
 
 
 @app.route("/api/question/<int:qid>")
@@ -109,6 +179,7 @@ def api_question(qid):
 
 
 @app.route("/admin")
+@requires_admin_auth
 def admin():
     init_db()
     conn = get_db()
@@ -129,6 +200,7 @@ def admin():
 
 
 @app.route("/admin/new", methods=["GET", "POST"])
+@requires_admin_auth
 def admin_new():
     init_db()
     conn = get_db()
@@ -158,6 +230,7 @@ def admin_new():
 
 
 @app.route("/admin/edit/<int:qid>", methods=["GET", "POST"])
+@requires_admin_auth
 def admin_edit(qid):
     init_db()
     conn = get_db()
@@ -188,6 +261,7 @@ def admin_edit(qid):
 
 
 @app.route("/admin/delete/<int:qid>", methods=["POST"])
+@requires_admin_auth
 def admin_delete(qid):
     conn = get_db()
     cur = conn.cursor()
@@ -199,4 +273,4 @@ def admin_delete(qid):
 
 if __name__ == "__main__":
     init_db()
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=DEBUG_MODE)

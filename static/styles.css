@@ -20,6 +20,14 @@ body.bg {
   opacity: 0.8;
 }
 
+.app-logo {
+  display: block;
+  max-width: 220px;
+  width: 100%;
+  height: auto;
+  margin: 0 auto 1rem;
+}
+
 .main {
   max-width: 1200px;
   margin: 0 auto;
@@ -107,7 +115,6 @@ body.bg {
   font-family: inherit;
 }
 
-/* ===== SCOREBOARD ===== */
 .scoreboard {
   display: flex;
   flex-wrap: wrap;
@@ -163,7 +170,6 @@ body.bg {
   background: #4b5563;
 }
 
-/* ===== GRADE BADGE ===== */
 .grade-badge {
   display: inline-block;
   background: #1d4ed8;
@@ -175,7 +181,6 @@ body.bg {
   margin-bottom: 0.25rem;
 }
 
-/* ===== TEAM SCORE BUTTONS ===== */
 .points-section {
   margin-top: 0.75rem;
   border-top: 1px solid #1f2937;

@@ -2,51 +2,43 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>trt.TechnikJeopardy - Technik Jeopardy Webapp</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>trt.TechnikJeopardy</title>
   <style>
-    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin:0; background:#0f172a; color:#e5e7eb; }
-    header { padding:2rem 1rem; text-align:center; }
-    h1 { font-size:2rem; margin-bottom:0.5rem; }
-    main { max-width:960px; margin:0 auto; padding:1rem; }
-    section { margin-bottom:1.5rem; background:#111827; border-radius:0.5rem; padding:1rem 1.5rem; }
-    a { color:#60a5fa; text-decoration:none; }
-    a:hover { text-decoration:underline; }
-    .btn { display:inline-block; padding:0.5rem 1rem; border-radius:999px; background:#2563eb; color:#f9fafb; margin-top:0.5rem; }
-    .btn-secondary { background:#374151; }
-    code { background:#020617; padding:0.15rem 0.4rem; border-radius:0.25rem; }
-    footer { text-align:center; padding:1rem; opacity:0.6; font-size:0.85rem; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #0f172a; color: #e5e7eb; }
+    main { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 1.5rem; }
+    a { color: #60a5fa; }
+    .buttons { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+    .btn { display: inline-block; padding: .7rem 1rem; border-radius: 999px; background: #2563eb; color: white; text-decoration: none; font-weight: 600; }
+    .muted { opacity: .8; }
+    ul { line-height: 1.6; }
+    .logo { max-width: 240px; width: 100%; height: auto; margin: 0.5rem auto 1rem; display: block; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>trt.TechnikJeopardy</h1>
-    <p>Jeopardy-Webapp fuer den Technikunterricht (Bildungsplan BW 2016)</p>
-  </header>
   <main>
-    <section>
-      <h2>Ueber das Projekt</h2>
-      <p>Dieses Projekt stellt eine Flask-basierte Jeopardy-Webapp mit Admin-Oberflaeche fuer den Technikunterricht bereit. Das Spiel orientiert sich an den Kompetenzbereichen des Bildungsplans Technik 2016 fuer Baden-Wuerttemberg und enthaelt einen Fragenpool mit 100 Fragen.</p>
-      <a class="btn" href="https://github.com/jbkunama1/trt.TechnikJeopardy" target="_blank">Zum GitHub-Repo</a>
-    </section>
-    <section>
-      <h2>Installation &amp; Betrieb</h2>
-      <p>Die Anwendung kann lokal mit Python, ueber Docker Compose oder als Portainer-Stack betrieben werden:</p>
-      <p><code>git clone https://github.com/jbkunama1/trt.TechnikJeopardy.git</code></p>
-      <p><code>pip install -r requirements.txt &amp;&amp; python app.py</code></p>
-      <p>oder</p>
-      <p><code>docker compose up -d</code></p>
-      <a class="btn btn-secondary" href="https://github.com/jbkunama1/trt.TechnikJeopardy#installation-lokal" target="_blank">Vollstaendige Anleitung</a>
-    </section>
-    <section>
-      <h2>Adminbereich &amp; Fragenpool</h2>
-      <p>Im Adminbereich (<code>/admin</code>) lassen sich Fragen nach Kategorie, Klassenstufe und Kompetenzbereich anlegen, bearbeiten und loeschen. Der mitgelieferte Fragenpool mit 100 Fragen kann laufend erweitert und an unterschiedliche Lerngruppen angepasst werden.</p>
-    </section>
-    <section>
-      <h2>Sicherheit</h2>
-      <p>Das Repository wird per GitHub Action automatisch mit TruffleHog auf versehentlich eingecheckte Secrets gescannt.</p>
+    <section class="card">
+      <h1>trt.TechnikJeopardy</h1>
+      <img src="./trtTechnikJeopardy_Logo.png" alt="trt.TechnikJeopardy Logo" class="logo">
+      <p class="muted">Jeopardy-Webapp fuer den Technikunterricht in Baden-Wuerttemberg (Bildungsplan 2016, Sekundarstufe I).</p>
+
+      <p>Das Projekt enthaelt ein responsives Spielfeld, einen abgesicherten Adminbereich, Team-Konfiguration und einen Fragenpool mit 300 Fragen fuer die Klassenstufen 7 bis 10.</p>
+
+      <ul>
+        <li>Flask-Webapp mit SQLite</li>
+        <li>Jeopardy-Spielfeld fuer den Klassenraum</li>
+        <li>Teammodus mit Namen und Punktevergabe</li>
+        <li>300 Technik-Fragen nach Bildungsplan BW</li>
+        <li>Admin-Bereich mit Basic-Auth-Schutz</li>
+        <li>Docker- und Portainer-tauglich</li>
+      </ul>
+
+      <div class="buttons">
+        <a class="btn" href="https://github.com/jbkunama1/trt.TechnikJeopardy">Zum Repository</a>
+        <a class="btn" href="https://github.com/jbkunama1/trt.TechnikJeopardy#readme">README ansehen</a>
+      </div>
     </section>
   </main>
-  <footer>MIT-Lizenz &middot; trt.TechnikJeopardy</footer>
 </body>
 </html>

@@ -1,5 +1,9 @@
 # trt.TechnikJeopardy
 
+<a href="https://www.buymeacoffee.com/highfish">
+<img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174">
+</a>
+
 ![trt.TechnikJeopardy Logo](./trtTechnikJeopardy_Logo.png)
 
 Jeopardy-Webapp fuer den Technikunterricht (Bildungsplan Baden-Wuerttemberg 2016, Sekundarstufe I). Modernes, responsives Spielfeld fuer den Klassenraum, Admin-Oberflaeche mit SQLite-Anbindung, Fragenpool mit 750 Fragen fuer Klasse 6 bis 10.
@@ -143,3 +147,4 @@ Die 100 urspruenglichen Fragen nutzen teilweise Klassenstufen-Bereiche (`7-8`, `
 ## Lizenz
 
 Dieses Projekt steht unter der [MIT-Lizenz](./LICENSE).
+

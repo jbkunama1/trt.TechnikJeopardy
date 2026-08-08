@@ -1,4 +1,10 @@
 # trt.TechnikJeopardy
+[![Status](https://img.shields.io/badge/status-active-brightgreen?style=for-the-badge)](https://github.com/jbkunama1/trt.TechnikJeopardy)
+[![Education](https://img.shields.io/badge/Made%20for-Sek%20I%20Technik-blue?style=for-the-badge)](https://github.com/jbkunama1/trt.TechnikJeopardy)
+[![Fragen](https://img.shields.io/badge/Fragenpool-750-6f42c1?style=for-the-badge&logo=quizlet&logoColor=white)](https://github.com/jbkunama1/trt.TechnikJeopardy)
+[![Bildungsplan](https://img.shields.io/badge/Bildungsplan-BW%202016-success?style=for-the-badge)](https://github.com/jbkunama1/trt.TechnikJeopardy)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+
 
 
 

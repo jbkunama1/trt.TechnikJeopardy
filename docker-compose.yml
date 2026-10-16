@@ -1,6 +1,6 @@
 services:
   trt-technikjeopardy:
-    build: .
+    image: ghcr.io/jbkunama1/trt.technikjeopardy:latest
     container_name: trt-technikjeopardy
     volumes:
       - trt_jeopardy_db:/app/data
@@ -12,7 +12,13 @@ services:
       - DB_PATH=/app/data/jeopardy.db
       - ADMIN_USER=${ADMIN_USER:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?ADMIN_PASSWORD muss gesetzt werden}
+    networks:
+      - highfishNetwork
     restart: unless-stopped
 
 volumes:
   trt_jeopardy_db:
+
+networks:
+  highfishNetwork:
+    external: true

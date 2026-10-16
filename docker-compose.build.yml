@@ -1,0 +1,5 @@
+# Override zum lokalen Bauen statt Image aus GHCR:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+services:
+  trt-technikjeopardy:
+    build: .

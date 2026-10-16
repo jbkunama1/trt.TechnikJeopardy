@@ -16,6 +16,7 @@ Jeopardy-Webapp fuer den Technikunterricht (Bildungsplan Baden-Wuerttemberg 2016
 - [Features](#features)
 - [Installation (lokal)](#installation-lokal)
 - [Installation mit Docker / Portainer](#installation-mit-docker--portainer)
+- [Automatischer Build (CI)](#automatischer-build-ci)
 - [Fragenpool](#fragenpool)
 - [Alte Datenbank uebernehmen](#alte-datenbank-uebernehmen)
 - [Konfiguration](#konfiguration)
@@ -25,12 +26,13 @@ Jeopardy-Webapp fuer den Technikunterricht (Bildungsplan Baden-Wuerttemberg 2016
 
 ## Features
 
-- **Jeopardy-Spieloberflaeche**: Kategorien und Punktefelder auf einem responsiven Board.
+- **Jeopardy-Spieloberflaeche**: Kategorien und Punktefelder, mobile-first, als Bottom-Sheet-Dialog auf dem Handy.
+- **Themes**: 7 Designs (Nacht, Hell, Automatisch, Neon, Sunset, Wald, Hoher Kontrast), Auswahl unter Admin > Einstellungen mit Live-Vorschau.
 - **Teammodus**: 1-6 Teams, Namen vergeben, Punkte direkt im Spiel verteilen.
 - **Klassenstufen-Filter**: Optional im Team-Setup (Klasse 6-10), serverseitig umgesetzt.
-- **Admin-Bereich**: Fragen anlegen/bearbeiten/loeschen und Einstellungen (Shuffle, Punktestufen), per Basic-Auth geschuetzt.
+- **Admin-Bereich**: Fragen anlegen/bearbeiten/loeschen mit Suche und Filter, Einstellungen (Theme, Shuffle, Punktestufen), per Basic-Auth geschuetzt.
 - **SQLite**: Die Datenbank `data/jeopardy.db` wird beim ersten Start automatisch angelegt. Die Standardfragen werden bei jedem Start abgeglichen.
-- **Docker/Portainer**: Fertiger Stack mit Healthcheck, gunicorn und Non-Root-User.
+- **Docker/Portainer**: Fertiges Image aus GHCR, Healthcheck, gunicorn und Non-Root-User.
 
 ## Installation (lokal)
 
@@ -54,13 +56,21 @@ python app.py
 
 ## Installation mit Docker / Portainer
 
+Das Image `ghcr.io/jbkunama1/trt.technikjeopardy:latest` wird bei jedem Push auf `main` automatisch gebaut (siehe [Automatischer Build](#automatischer-build-ci)). Die `docker-compose.yml` nutzt dieses Image und das externe Netzwerk `highfishNetwork` (einmalig anlegen, falls es fehlt: `docker network create highfishNetwork`).
+
 ### Docker Compose (CLI)
 
 ```bash
-ADMIN_PASSWORD="ein_sicheres_passwort" docker compose up -d --build
+ADMIN_PASSWORD="ein_sicheres_passwort" docker compose up -d
 ```
 
 Der Service ist danach unter `http://localhost:5050` erreichbar. Ohne `ADMIN_PASSWORD` bricht `docker compose` mit einer Fehlermeldung ab.
+
+Lokal bauen statt das Image zu laden:
+
+```bash
+ADMIN_PASSWORD="ein_sicheres_passwort" docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+```
 
 ### Portainer-Stack (empfohlen)
 
@@ -68,19 +78,30 @@ Der Service ist danach unter `http://localhost:5050` erreichbar. Ohne `ADMIN_PAS
 2. Namen vergeben, z. B. `trt-technikjeopardy`.
 3. **Build method**: "Repository" mit `https://github.com/jbkunama1/trt.TechnikJeopardy` und Compose-Pfad `docker-compose.yml`.
 4. Unter **Environment variables** `ADMIN_USER` und `ADMIN_PASSWORD` mit eigenen, sicheren Werten setzen.
-5. **Deploy the stack**.
-6. Erreichbar unter `http://<server-ip>:5050`.
+5. **GitOps updates** aktivieren (Polling oder Webhook) und die Option zum erneuten Laden des Images ("Re-pull image") einschalten.
+6. **Deploy the stack**. Erreichbar unter `http://<server-ip>:5050`.
+
+Ist das GHCR-Paket privat, hinterlegst du in Portainer unter **Registries** einen Zugang zu `ghcr.io` (Benutzername + Personal Access Token mit `read:packages`) oder stellst das Paket auf oeffentlich.
 
 Die Datenbank liegt im benannten Volume `trt_jeopardy_db` (`/app/data`) und bleibt bei Neustart und Recreate erhalten.
 
 ### Update
 
+Nach einem Push auf `main` baut GitHub Actions das neue Image. Danach in Portainer den Stack mit **Pull and redeploy** aktualisieren (bzw. automatisch per GitOps-Update). Per CLI:
+
 ```bash
-git pull
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 ```
 
-In Portainer: Stack oeffnen, **Pull and redeploy** mit aktivierter Option "Re-build image".
+## Automatischer Build (CI)
+
+Der Workflow `.github/workflows/docker.yml` laeuft bei Push auf `main`, bei Pull Requests und manuell:
+
+1. **check**: Python-Syntax, Import der App und Syntax aller Templates pruefen.
+2. **image**: nur bei Push auf `main` oder manuell, baut das Docker-Image und pusht es als `latest` und `sha-<commit>` nach `ghcr.io/jbkunama1/trt.technikjeopardy`.
+
+Aenderungen nur an `README.md`, `game.gif` oder `docs/` loesen keinen Build aus. Schlaegt `check` fehl, wird kein Image gebaut.
 
 ## Fragenpool
 
@@ -118,6 +139,8 @@ Nur Datenbanken mit mindestens einer Frage werden uebernommen. Im Docker-Betrieb
 | `LEGACY_DB_PATH` | leer | Pfad einer alten `jeopardy.db`, die beim ersten Start uebernommen wird |
 | `SEED_SYNC` | `1` | `0` schaltet den Abgleich der Standardfragen beim Start ab |
 | `FLASK_DEBUG` | `0` | Nur lokal zum Entwickeln auf `1` setzen |
+
+Das Theme wird im Adminbereich unter Einstellungen gewaehlt und in der Datenbank gespeichert.
 
 ## Sicherheit
 

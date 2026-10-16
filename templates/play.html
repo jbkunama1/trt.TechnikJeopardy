@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Technik-Jeopardy{% endblock %}
-{% block actions %}<button id="settings-btn" class="btn-secondary btn-small" type="button" aria-label="Teams und Einstellungen">&#9881; Teams</button>{% endblock %}
+{% block actions %}
+  <a class="btn-secondary btn-small" href="{{ url_for('admin_home') }}" aria-label="Adminbereich">&#128273; Admin</a>
+  <button id="settings-btn" class="btn-secondary btn-small" type="button" aria-label="Teams und Einstellungen">&#9881; Teams</button>
+{% endblock %}
 {% block content %}
   <div id="setup-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="setup-title">
     <div class="modal setup-modal-inner">

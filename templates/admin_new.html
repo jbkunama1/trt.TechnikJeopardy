@@ -1,11 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Neue Frage &ndash; Technik-Jeopardy{% endblock %}
 {% block subtitle %}Admin{% endblock %}
-{% block actions %}
-  <a class="nav-link active" href="{{ url_for('admin') }}">Fragen</a>
-  <a class="nav-link" href="{{ url_for('admin_settings') }}">Einstellungen</a>
-  <a class="nav-link" href="{{ url_for('play') }}">Spiel</a>
-{% endblock %}
+{% block head %}<link href="{{ url_for('static', filename='admin.css') }}?v={{ asset_v }}" rel="stylesheet">{% endblock %}
+{% block actions %}{% set active = 'questions' %}{% include "_admin_nav.html" %}{% endblock %}
 {% block content %}
   <main class="main">
     <h1 class="page-title">Neue Frage</h1>

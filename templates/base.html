@@ -7,6 +7,7 @@
   <meta name="theme-color" content="{{ theme_bar }}">
   <link rel="icon" href="{{ url_for('logo') }}">
   <link href="{{ url_for('static', filename='styles.css') }}?v={{ asset_v }}" rel="stylesheet">
+  {% block head %}{% endblock %}
 </head>
 <body>
   <header class="topbar">

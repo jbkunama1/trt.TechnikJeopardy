@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Admin &ndash; Technik-Jeopardy{% endblock %}
+{% block subtitle %}Admin{% endblock %}
+{% block head %}<link href="{{ url_for('static', filename='admin.css') }}?v={{ asset_v }}" rel="stylesheet">{% endblock %}
+{% block actions %}{% set active = 'home' %}{% include "_admin_nav.html" %}{% endblock %}
+{% block content %}
+  <main class="main">
+    <h1 class="page-title">Admin</h1>
+    <p class="page-sub">Du bist angemeldet. Hier verwaltest du Fragen, Design und Spieleinstellungen.</p>
+
+    <section class="stats" aria-label="Kennzahlen">
+      <div class="stat"><b>{{ total }}</b><span>Fragen</span></div>
+      <div class="stat"><b>{{ per_cat|length }}</b><span>Kategorien</span></div>
+      <div class="stat"><b>{{ theme_label }}</b><span>Theme</span></div>
+      <div class="stat"><b>{{ 'An' if shuffle_enabled else 'Aus' }}</b><span>Mischen</span></div>
+    </section>
+
+    <section class="tiles" aria-label="Aktionen">
+      <a class="tile" href="{{ url_for('admin') }}"><span class="ico">&#128221;</span><span><strong>Fragen verwalten</strong><span class="d">Suchen, bearbeiten und l&ouml;schen</span></span></a>
+      <a class="tile" href="{{ url_for('admin_new') }}"><span class="ico">&#10133;</span><span><strong>Neue Frage</strong><span class="d">Frage mit Antwort und Klassenstufe anlegen</span></span></a>
+      <a class="tile" href="{{ url_for('admin_settings') }}"><span class="ico">&#127912;</span><span><strong>Einstellungen &amp; Design</strong><span class="d">Theme, Mischen und Punktestufen ({{ point_levels }})</span></span></a>
+      <a class="tile" href="{{ url_for('play') }}"><span class="ico">&#127918;</span><span><strong>Spiel &ouml;ffnen</strong><span class="d">Zum Spielbrett wechseln</span></span></a>
+      <a class="tile tile-out" href="{{ url_for('admin_logout') }}"><span class="ico">&#128682;</span><span><strong>Abmelden</strong><span class="d">Anmeldung im Browser beenden</span></span></a>
+    </section>
+
+    <section class="card cats">
+      <h2>Fragen pro Kategorie</h2>
+      {% for row in per_cat %}
+      <div class="cat-row">
+        <span class="cat-name">{{ row.name }}</span>
+        <span class="cat-bar"><i style="width: {{ ((row.n * 100 / total)|round|int) if total else 0 }}%"></i></span>
+        <span class="cat-n">{{ row.n }}</span>
+      </div>
+      {% endfor %}
+    </section>
+  </main>
+{% endblock %}

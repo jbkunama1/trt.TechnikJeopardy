@@ -1,0 +1,4 @@
+<a class="nav-link{% if active == 'home' %} active{% endif %}" href="{{ url_for('admin_home') }}">&Uuml;bersicht</a>
+<a class="nav-link{% if active == 'questions' %} active{% endif %}" href="{{ url_for('admin') }}">Fragen</a>
+<a class="nav-link{% if active == 'settings' %} active{% endif %}" href="{{ url_for('admin_settings') }}">Einstellungen</a>
+<a class="nav-link" href="{{ url_for('play') }}">Spiel</a>

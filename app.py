@@ -506,6 +506,51 @@ def api_question(qid):
 
 @app.route("/admin")
 @requires_admin_auth
+def admin_home():
+    init_db()
+    conn = get_db()
+    total = conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
+    per_cat = conn.execute(
+        "SELECT c.name AS name, COUNT(q.id) AS n "
+        "FROM categories c LEFT JOIN questions q ON q.category_id = c.id "
+        "GROUP BY c.id ORDER BY c.id"
+    ).fetchall()
+    conn.close()
+    return render_template(
+        "admin_home.html",
+        total=total,
+        per_cat=per_cat,
+        theme_label=THEMES[get_theme()]["label"],
+        shuffle_enabled=is_shuffle_enabled(),
+        point_levels=get_setting("point_levels", DEFAULT_POINT_LEVELS),
+    )
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    # 401 veranlasst den Browser, die gespeicherte Anmeldung zu verwerfen (browserabhaengig)
+    body = (
+        '<!doctype html><html lang="de"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        "<title>Abgemeldet</title></head>"
+        '<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:3rem auto;padding:0 1rem">'
+        "<h1>Abgemeldet</h1>"
+        "<p>Die Anmeldung wurde beendet. Schliesse das Anmeldefenster mit Abbrechen.</p>"
+        '<p><a href="/play">Zum Spiel</a> &middot; <a href="/admin">Erneut anmelden</a></p>'
+        "</body></html>"
+    )
+    return Response(
+        body,
+        401,
+        {
+            "WWW-Authenticate": 'Basic realm="trt.TechnikJeopardy Admin"',
+            "Content-Type": "text/html; charset=utf-8",
+        },
+    )
+
+
+@app.route("/admin/questions")
+@requires_admin_auth
 def admin():
     init_db()
     conn = get_db()

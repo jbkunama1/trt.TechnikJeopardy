@@ -1,0 +1,29 @@
+.topbar { flex-wrap: wrap; }
+.stats { display: grid; gap: .6rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 1rem; }
+.stat { display: grid; gap: .1rem; padding: .8rem 1rem; border-radius: var(--radius); background: var(--surface); border: var(--bw) solid var(--border); box-shadow: var(--shadow); }
+.stat b { font-size: 1.5rem; color: var(--gold); line-height: 1.2; }
+.stat span { color: var(--muted); font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.tiles { display: grid; gap: .7rem; grid-template-columns: 1fr; margin-bottom: 1rem; }
+.tile { display: flex; align-items: center; gap: .9rem; min-height: 72px; padding: 1rem; border-radius: var(--radius); background: var(--surface); border: var(--bw) solid var(--border); box-shadow: var(--shadow); color: var(--text); text-decoration: none; transition: transform .14s ease, border-color .15s ease; }
+.tile:hover, .tile:focus-visible { transform: translateY(-2px); border-color: var(--accent2); }
+.tile:active { transform: scale(.98); }
+.tile .ico { font-size: 1.9rem; line-height: 1; flex: none; }
+.tile strong { display: block; font-size: 1.05rem; }
+.tile .d { display: block; color: var(--muted); font-size: .85rem; font-weight: 400; }
+.tile-out { border-color: var(--danger); }
+.cats h2 { margin: 0 0 .8rem; font-size: 1.1rem; }
+.cat-row { display: grid; grid-template-columns: minmax(0, 1fr) 2.5rem; grid-template-areas: "name n" "bar bar"; gap: .25rem .6rem; margin-bottom: .8rem; align-items: center; }
+.cat-name { grid-area: name; font-weight: 700; font-size: .92rem; overflow-wrap: anywhere; }
+.cat-n { grid-area: n; text-align: right; color: var(--gold); font-weight: 800; }
+.cat-bar { grid-area: bar; height: 8px; border-radius: 999px; background: var(--surface2); overflow: hidden; }
+.cat-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+@media (max-width: 719px) {
+  .topbar-actions { width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .topbar-actions::-webkit-scrollbar { display: none; }
+  .nav-link { white-space: nowrap; }
+}
+@media (min-width: 720px) {
+  .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cat-row { grid-template-columns: 16rem minmax(0, 1fr) 3rem; grid-template-areas: "name bar n"; }
+}

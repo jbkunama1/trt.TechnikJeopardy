@@ -26,6 +26,14 @@ SEED_FILES = [
     os.path.join(BASE_DIR, "seed_questions_round3.sql"),
 ]
 
+# Alte Datenbank, die beim ersten Start automatisch uebernommen wird
+LEGACY_DB_PATHS = [
+    p for p in (
+        os.environ.get("LEGACY_DB_PATH", ""),
+        os.path.join(BASE_DIR, "jeopardy.db"),
+    ) if p
+]
+
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 WEAK_PASSWORDS = {"", "technik2016", "bitte-aendern", "admin", "password", "changeme"}
@@ -74,6 +82,46 @@ def get_db():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+def migrate_legacy_db():
+    """Uebernimmt eine alte jeopardy.db einmalig nach DB_PATH (nur lesend auf der alten Datei)."""
+    if os.path.exists(DB_PATH):
+        return
+    for legacy in LEGACY_DB_PATHS:
+        if not os.path.isfile(legacy):
+            continue
+        if os.path.abspath(legacy) == os.path.abspath(DB_PATH):
+            continue
+        src = None
+        dst = None
+        try:
+            src = sqlite3.connect(legacy)
+            count = src.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
+            if count <= 0:
+                log.info("Alte DB %s enthaelt keine Fragen - uebersprungen.", legacy)
+                continue
+            os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+            dst = sqlite3.connect(DB_PATH)
+            src.backup(dst)
+            dst.commit()
+            log.info("Alte DB %s mit %d Fragen nach %s uebernommen.", legacy, count, DB_PATH)
+            return
+        except Exception as exc:
+            log.warning("Uebernahme der alten DB %s fehlgeschlagen: %s", legacy, exc)
+            if dst is not None:
+                dst.close()
+                dst = None
+            if os.path.exists(DB_PATH):
+                try:
+                    os.remove(DB_PATH)
+                except OSError:
+                    pass
+        finally:
+            if src is not None:
+                src.close()
+            if dst is not None:
+                dst.close()
 
 
 def check_auth(username, password):
@@ -144,6 +192,7 @@ def run_seed_files(conn):
 
 
 def init_db():
+    migrate_legacy_db()
     conn = get_db()
     cur = conn.cursor()
     cur.execute(

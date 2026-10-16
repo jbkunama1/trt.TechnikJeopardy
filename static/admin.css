@@ -17,6 +17,27 @@
 .cat-n { grid-area: n; text-align: right; color: var(--gold); font-weight: 800; }
 .cat-bar { grid-area: bar; height: 8px; border-radius: 999px; background: var(--surface2); overflow: hidden; }
 .cat-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.doc { display: grid; gap: 1rem; margin-top: 1rem; }
+.doc h2 { margin: 0 0 .5rem; font-size: 1.1rem; }
+.doc p, .doc li { font-size: .92rem; }
+.doc ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .4rem; }
+.doc pre { margin: 0; padding: .8rem; overflow-x: auto; background: var(--bg); border: var(--bw) solid var(--border); border-radius: var(--radius-sm); font-size: .8rem; line-height: 1.45; }
+.doc code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.doc p code, .doc td code, .doc li code { background: var(--surface2); padding: .05rem .35rem; border-radius: 6px; font-size: .85em; }
+.table-scroll { overflow-x: auto; }
+.doc table { width: 100%; border-collapse: collapse; font-size: .88rem; min-width: 34rem; }
+.doc th, .doc td { text-align: left; vertical-align: top; padding: .45rem .6rem; border-bottom: var(--bw) solid var(--border); }
+.doc th { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; }
+.req { color: var(--danger); font-weight: 800; }
+.dl { display: flex; flex-wrap: wrap; gap: .5rem; }
+.form label.check { display: flex; align-items: flex-start; gap: .6rem; color: var(--text); font-weight: 600; }
+.form label.check input { width: 22px; height: 22px; flex: none; margin-top: .1rem; accent-color: var(--accent); }
+.form input[type="file"] { width: 100%; padding: .7rem; border: 1px dashed var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font: inherit; }
+.form textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; min-height: 140px; }
+.errs { margin: .6rem 0 0; padding-left: 1.1rem; display: grid; gap: .3rem; font-size: .9rem; }
+.errs li::marker { color: var(--danger); }
+.notice { padding: .7rem .9rem; border-radius: var(--radius-sm); border: var(--bw) solid var(--accent2); background: color-mix(in srgb, var(--accent2) 12%, var(--surface)); font-size: .92rem; margin-bottom: 1rem; }
+.notice.bad { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--surface)); }
 @media (max-width: 719px) {
   .topbar-actions { width: 100%; overflow-x: auto; scrollbar-width: none; }
   .topbar-actions::-webkit-scrollbar { display: none; }

@@ -18,6 +18,7 @@
     <section class="tiles" aria-label="Aktionen">
       <a class="tile" href="{{ url_for('admin') }}"><span class="ico">&#128221;</span><span><strong>Fragen verwalten</strong><span class="d">Suchen, bearbeiten und l&ouml;schen</span></span></a>
       <a class="tile" href="{{ url_for('admin_new') }}"><span class="ico">&#10133;</span><span><strong>Neue Frage</strong><span class="d">Frage mit Antwort und Klassenstufe anlegen</span></span></a>
+      <a class="tile" href="{{ url_for('admin_import') }}"><span class="ico">&#128229;</span><span><strong>Fragen importieren</strong><span class="d">JSON oder CSV hochladen, Vorlage und Export</span></span></a>
       <a class="tile" href="{{ url_for('admin_settings') }}"><span class="ico">&#127912;</span><span><strong>Einstellungen &amp; Design</strong><span class="d">Theme, Mischen und Punktestufen ({{ point_levels }})</span></span></a>
       <a class="tile" href="{{ url_for('play') }}"><span class="ico">&#127918;</span><span><strong>Spiel &ouml;ffnen</strong><span class="d">Zum Spielbrett wechseln</span></span></a>
       <a class="tile tile-out" href="{{ url_for('admin_logout') }}"><span class="ico">&#128682;</span><span><strong>Abmelden</strong><span class="d">Anmeldung im Browser beenden</span></span></a>

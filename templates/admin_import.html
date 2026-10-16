@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Import &ndash; Technik-Jeopardy{% endblock %}
+{% block subtitle %}Admin{% endblock %}
+{% block head %}<link href="{{ url_for('static', filename='admin.css') }}?v={{ asset_v }}" rel="stylesheet">{% endblock %}
+{% block actions %}{% set active = 'import' %}{% include "_admin_nav.html" %}{% endblock %}
+{% block content %}
+  <main class="main">
+    <h1 class="page-title">Fragen importieren</h1>
+    <p class="page-sub">JSON oder CSV hochladen oder einf&uuml;gen. Die Anleitung steht weiter unten.</p>
+
+    {% if error %}
+    <div class="notice bad" role="alert"><strong>Import nicht m&ouml;glich:</strong> {{ error }}</div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="form card">
+      <label>Datei (.json oder .csv)
+        <input type="file" name="file" accept=".json,.csv,.txt,application/json,text/csv">
+      </label>
+      <label>&hellip; oder Inhalt einf&uuml;gen
+        <textarea name="paste" class="mono" placeholder="JSON oder CSV hier einf&uuml;gen"></textarea>
+      </label>
+      <label class="check">
+        <input type="checkbox" name="allow_new_categories">
+        <span>Unbekannte Kategorien automatisch anlegen
+          <span class="hint" style="display:block">Aus: Zeilen mit unbekannter Kategorie werden als Fehler gemeldet (sch&uuml;tzt vor Tippfehlern).</span></span>
+      </label>
+      <div class="form-actions">
+        <button class="btn-secondary" type="submit" name="action" value="check">Nur pr&uuml;fen</button>
+        <button class="btn-primary" type="submit" name="action" value="import">Importieren</button>
+      </div>
+      <p class="hint" style="margin:0">&bdquo;Nur pr&uuml;fen&ldquo; speichert nichts und zeigt dir, was passieren w&uuml;rde. Maximal {{ max_rows }} Fragen pro Import, Duplikate (gleicher Fragetext) werden &uuml;bersprungen.</p>
+    </form>
+
+    {% if result %}
+    <section class="card" style="margin-top:1rem" aria-live="polite">
+      <h2 style="margin:0 0 .6rem">{% if result.dry_run %}Pr&uuml;fung{% else %}Import{% endif %} abgeschlossen</h2>
+      {% if result.dry_run %}<div class="notice" style="margin-bottom:.8rem">Trockenlauf: Es wurde nichts gespeichert. Mit &bdquo;Importieren&ldquo; &uuml;bernimmst du die g&uuml;ltigen Eintr&auml;ge.</div>{% endif %}
+      <div class="stats">
+        <div class="stat"><b>{{ result.total }}</b><span>Eintr&auml;ge</span></div>
+        <div class="stat"><b>{{ result.imported }}</b><span>{% if result.dry_run %}w&uuml;rden importiert{% else %}importiert{% endif %}</span></div>
+        <div class="stat"><b>{{ result.duplicates }}</b><span>Duplikate</span></div>
+        <div class="stat"><b>{{ result.errors|length }}</b><span>Fehler</span></div>
+      </div>
+      {% if result.new_categories %}
+      <p style="margin:.8rem 0 0"><strong>{% if result.dry_run %}W&uuml;rden angelegt{% else %}Neu angelegt{% endif %}:</strong> {{ result.new_categories|join(', ') }}</p>
+      {% endif %}
+      {% if result.errors %}
+      <h3 style="margin:1rem 0 0">Fehler</h3>
+      <ul class="errs">
+        {% for label, msg in result.errors[:100] %}<li><strong>{{ label }}:</strong> {{ msg }}</li>{% endfor %}
+      </ul>
+      {% if result.errors|length > 100 %}<p class="hint">&hellip; und {{ result.errors|length - 100 }} weitere Fehler.</p>{% endif %}
+      {% endif %}
+      {% if not result.dry_run and result.imported %}
+      <p style="margin:1rem 0 0"><a class="btn-secondary btn-small" href="{{ url_for('admin') }}">Zur Fragenliste</a></p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <div class="doc">
+      <section class="card">
+        <h2>Anleitung: Welches Format?</h2>
+        <p><strong>JSON</strong> ist die bessere Wahl, wenn die Fragen aus einem Skript oder von einer KI kommen oder wenn Texte Zeilenumbr&uuml;che, Semikolons oder Anf&uuml;hrungszeichen enthalten. Es gibt keine Probleme mit Trennzeichen oder Zeichens&auml;tzen.</p>
+        <p><strong>CSV</strong> ist praktisch, wenn du die Fragen in Excel oder LibreOffice pflegst. Speichere als &bdquo;CSV UTF-8&ldquo; mit Semikolon oder Komma als Trennzeichen. Beides wird automatisch erkannt.</p>
+        <div class="dl" style="margin-top:.6rem">
+          <a class="btn-secondary btn-small" href="{{ url_for('admin_template_json') }}">Vorlage JSON</a>
+          <a class="btn-secondary btn-small" href="{{ url_for('admin_template_csv') }}">Vorlage CSV</a>
+          <a class="btn-ghost btn-small" href="{{ url_for('admin_export_json') }}">Alle Fragen als JSON</a>
+          <a class="btn-ghost btn-small" href="{{ url_for('admin_export_csv') }}">Alle Fragen als CSV</a>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Felder</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Feld</th><th>Pflicht</th><th>Bedeutung</th></tr></thead>
+            <tbody>
+              <tr><td><code>kategorie</code></td><td><span class="req">ja</span></td><td>Name der Kategorie, Gro&szlig;-/Kleinschreibung egal. Vorhanden: {% for c in categories %}<code>{{ c.name }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>
+              <tr><td><code>punkte</code></td><td><span class="req">ja</span></td><td>Positive ganze Zahl, z. B. <code>100</code>. Eine Frage erscheint nur auf dem Spielbrett, wenn die Punktzahl zu den Punktestufen unter Einstellungen passt (Standard: 100, 200, 300, 400, 500).</td></tr>
+              <tr><td><code>frage</code></td><td><span class="req">ja</span></td><td>Fragetext, bis 2000 Zeichen.</td></tr>
+              <tr><td><code>antwort</code></td><td><span class="req">ja</span></td><td>Antworttext, bis 2000 Zeichen.</td></tr>
+              <tr><td><code>klassenstufe</code></td><td>nein</td><td>Eine Klasse (<code>7</code>) oder ein Bereich (<code>7-8</code>). Der Klassenfilter im Spiel nutzt dieses Feld.</td></tr>
+              <tr><td><code>kompetenzbereich</code></td><td>nein</td><td>Freitext, z. B. <code>3.3.1 Werkstoffe und Produkte</code> (bis 200 Zeichen).</td></tr>
+              <tr><td><code>hinweis</code></td><td>nein</td><td>Optionaler Hinweis zur Frage.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Beispiel JSON</h2>
+        <pre><code>{
+  "fragen": [
+    {
+      "kategorie": "Werkstoffe und Produkte",
+      "punkte": 100,
+      "klassenstufe": "7-8",
+      "kompetenzbereich": "3.3.1 Werkstoffe und Produkte",
+      "frage": "Nenne drei typische metallische Werkstoffe.",
+      "antwort": "Stahl, Aluminium, Kupfer.",
+      "hinweis": ""
+    },
+    {
+      "kategorie": "Systeme und Prozesse",
+      "punkte": 300,
+      "frage": "Was ist ein Aktor?",
+      "antwort": "Ein Bauteil, das eine Wirkung aus&uuml;bt."
+    }
+  ]
+}</code></pre>
+        <p class="hint">Auch eine blanke Liste <code>[ {...}, {...} ]</code> ohne &bdquo;fragen&ldquo; wird akzeptiert. Optionale Felder d&uuml;rfen fehlen.</p>
+      </section>
+
+      <section class="card">
+        <h2>Beispiel CSV</h2>
+        <pre><code>kategorie;punkte;klassenstufe;kompetenzbereich;frage;antwort;hinweis
+Werkstoffe und Produkte;100;7-8;3.3.1 Werkstoffe und Produkte;Nenne drei typische metallische Werkstoffe.;Stahl, Aluminium, Kupfer.;
+Systeme und Prozesse;300;9;;Was ist ein Aktor?;Ein Bauteil, das eine Wirkung aus&uuml;bt.;Gegenst&uuml;ck zum Sensor</code></pre>
+        <p class="hint">Die erste Zeile enth&auml;lt die Spaltennamen. Texte mit Trennzeichen oder Zeilenumbr&uuml;chen setzt du in Anf&uuml;hrungszeichen (<code>"..."</code>). Excel macht das beim Speichern automatisch.</p>
+      </section>
+
+      <section class="card">
+        <h2>Regeln</h2>
+        <ul>
+          <li>Fehlerhafte Eintr&auml;ge werden &uuml;bersprungen und mit Nummer und Grund aufgelistet, alle g&uuml;ltigen werden importiert.</li>
+          <li>Eine Frage mit gleichem Fragetext wie eine vorhandene gilt als Duplikat und wird &uuml;bersprungen.</li>
+          <li>Akzeptiert werden auch englische Feldnamen: <code>category</code>, <code>points</code>, <code>grade_level</code>, <code>competence_area</code>, <code>question</code>, <code>answer</code>, <code>hint</code>. Unbekannte Spalten werden ignoriert.</li>
+          <li>Kodierung: UTF-8 (auch mit BOM). Alte Windows-Dateien (Windows-1252) werden ebenfalls gelesen.</li>
+          <li>Tipp: Erst mit &bdquo;Nur pr&uuml;fen&ldquo; testen, dann importieren. Mit dem Export sicherst du vorher deinen Fragenpool.</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+{% endblock %}

@@ -12,9 +12,12 @@ from flask import (
     send_from_directory, url_for,
 )
 
+import importer
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder="static", template_folder="templates")
-app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
+# Upload-Limit (Fragen-Import als JSON/CSV)
+app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("technikjeopardy")
 
@@ -589,6 +592,93 @@ def admin_settings():
         shuffle_enabled=is_shuffle_enabled(),
         point_levels=get_setting("point_levels", DEFAULT_POINT_LEVELS),
     )
+
+
+def _download(body, filename, mimetype):
+    return Response(
+        body,
+        mimetype=mimetype,
+        headers={
+            "Content-Disposition": 'attachment; filename="%s"' % filename,
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@app.route("/admin/import", methods=["GET", "POST"])
+@requires_admin_auth
+def admin_import():
+    init_db()
+    result = None
+    error = None
+    if request.method == "POST":
+        dry_run = request.form.get("action") == "check"
+        allow_new = request.form.get("allow_new_categories") == "on"
+        filename = ""
+        upload = request.files.get("file")
+        if upload and upload.filename:
+            filename = upload.filename
+            text = importer.decode_bytes(upload.read())
+        else:
+            text = request.form.get("paste", "")
+        if not text.strip():
+            error = "Bitte eine Datei auswaehlen oder Inhalt einfuegen."
+        else:
+            try:
+                rows = importer.parse(text, filename)
+                conn = get_db()
+                try:
+                    result = importer.run_import(conn, rows, dry_run, allow_new)
+                finally:
+                    conn.close()
+            except importer.ImportFormatError as exc:
+                error = str(exc)
+    conn = get_db()
+    categories = conn.execute("SELECT name FROM categories ORDER BY id").fetchall()
+    conn.close()
+    return render_template(
+        "admin_import.html",
+        result=result,
+        error=error,
+        categories=categories,
+        max_rows=importer.MAX_ROWS,
+    )
+
+
+@app.route("/admin/import/vorlage.json")
+@requires_admin_auth
+def admin_template_json():
+    return _download(importer.to_json(importer.TEMPLATE_ROWS), "fragen-vorlage.json", "application/json")
+
+
+@app.route("/admin/import/vorlage.csv")
+@requires_admin_auth
+def admin_template_csv():
+    return _download(importer.to_csv(importer.TEMPLATE_ROWS), "fragen-vorlage.csv", "text/csv")
+
+
+@app.route("/admin/export.json")
+@requires_admin_auth
+def admin_export_json():
+    init_db()
+    conn = get_db()
+    try:
+        rows = importer.export_rows(conn)
+    finally:
+        conn.close()
+    return _download(importer.to_json(rows), "fragen-export.json", "application/json")
+
+
+@app.route("/admin/export.csv")
+@requires_admin_auth
+def admin_export_csv():
+    init_db()
+    conn = get_db()
+    try:
+        rows = importer.export_rows(conn)
+    finally:
+        conn.close()
+    return _download(importer.to_csv(rows), "fragen-export.csv", "text/csv")
 
 
 @app.route("/admin/new", methods=["GET", "POST"])

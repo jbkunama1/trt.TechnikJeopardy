@@ -17,6 +17,7 @@ Jeopardy-Webapp fuer den Technikunterricht (Bildungsplan Baden-Wuerttemberg 2016
 - [Installation (lokal)](#installation-lokal)
 - [Installation mit Docker / Portainer](#installation-mit-docker--portainer)
 - [Fragenpool](#fragenpool)
+- [Alte Datenbank uebernehmen](#alte-datenbank-uebernehmen)
 - [Konfiguration](#konfiguration)
 - [Sicherheit](#sicherheit)
 - [Klassenstufen-Filter](#klassenstufen-filter)
@@ -28,7 +29,7 @@ Jeopardy-Webapp fuer den Technikunterricht (Bildungsplan Baden-Wuerttemberg 2016
 - **Teammodus**: 1-6 Teams, Namen vergeben, Punkte direkt im Spiel verteilen.
 - **Klassenstufen-Filter**: Optional im Team-Setup (Klasse 6-10), serverseitig umgesetzt.
 - **Admin-Bereich**: Fragen anlegen/bearbeiten/loeschen und Einstellungen (Shuffle, Punktestufen), per Basic-Auth geschuetzt.
-- **SQLite**: Die Datenbank `data/jeopardy.db` wird beim ersten Start automatisch angelegt und befuellt.
+- **SQLite**: Die Datenbank `data/jeopardy.db` wird beim ersten Start automatisch angelegt. Die Standardfragen werden bei jedem Start abgeglichen.
 - **Docker/Portainer**: Fertiger Stack mit Healthcheck, gunicorn und Non-Root-User.
 
 ## Installation (lokal)
@@ -50,8 +51,6 @@ python app.py
 - Spielfeld: `http://localhost:5000/play`
 - Adminbereich: `http://localhost:5000/admin`
 - Healthcheck: `http://localhost:5000/healthz`
-
-Beim ersten Start werden alle vier Seed-Dateien automatisch importiert, sofern die Datenbank noch keine Fragen enthaelt.
 
 ## Installation mit Docker / Portainer
 
@@ -85,7 +84,12 @@ In Portainer: Stack oeffnen, **Pull and redeploy** mit aktivierter Option "Re-bu
 
 ## Fragenpool
 
-Im Repo liegen `seed_questions.sql` (100 Fragen), `seed_questions_extra.sql` (200), `seed_questions_more.sql` (200) und `seed_questions_round3.sql` (250) mit insgesamt 750 Fragen. Der Import erfolgt automatisch bei einer leeren Fragen-Tabelle. Neue Seed-Dateien werden bei bestehender Datenbank nicht nachgeladen.
+Im Repo liegen `seed_questions.sql` (100 Fragen), `seed_questions_extra.sql` (200), `seed_questions_more.sql` (200) und `seed_questions_round3.sql` (250) mit insgesamt 750 Fragen.
+
+Bei **jedem Start** gleicht die App diese Standardfragen mit der Datenbank ab: Fehlende Fragen werden ergaenzt (Abgleich ueber den Fragetext), vorhandene und eigene Fragen bleiben unveraendert. Die Seed-Dateien laufen dabei in einer temporaeren In-Memory-Datenbank, ihre `DELETE`-Statements koennen die echte Datenbank nicht treffen.
+
+- Geloeschte Standardfragen kommen beim naechsten Start wieder. Mit `SEED_SYNC=0` schaltest du den Abgleich ab.
+- Aenderst du den Text einer Standardfrage im Admin-Bereich, wird die Originalfrage beim naechsten Start zusaetzlich wieder angelegt.
 
 DB bewusst neu aufbauen (lokal):
 
@@ -93,6 +97,15 @@ DB bewusst neu aufbauen (lokal):
 rm -f data/jeopardy.db
 python app.py
 ```
+
+## Alte Datenbank uebernehmen
+
+Existiert `data/jeopardy.db` noch nicht, kopiert die App beim ersten Start eine alte Datenbank dorthin (die alte Datei wird nur gelesen). Gesucht wird in dieser Reihenfolge:
+
+1. Pfad aus der Umgebungsvariable `LEGACY_DB_PATH`
+2. `jeopardy.db` im App-Ordner (im Container `/app/jeopardy.db`)
+
+Nur Datenbanken mit mindestens einer Frage werden uebernommen. Im Docker-Betrieb mountest du die alte Datei zum Beispiel read-only nach `/legacy/jeopardy.db` und setzt `LEGACY_DB_PATH=/legacy/jeopardy.db`. Nach der Uebernahme kannst du den Mount entfernen. Wurde bereits eine neue Datenbank angelegt, loeschst du `data/jeopardy.db` vor dem Neustart.
 
 ## Konfiguration
 
@@ -102,6 +115,8 @@ python app.py
 | `ADMIN_PASSWORD` | leer | Pflicht. Leere oder bekannte Standardwerte deaktivieren den Adminbereich |
 | `PORT` | `5000` | Port im Container bzw. lokal |
 | `DB_PATH` | `data/jeopardy.db` | Pfad der SQLite-Datei |
+| `LEGACY_DB_PATH` | leer | Pfad einer alten `jeopardy.db`, die beim ersten Start uebernommen wird |
+| `SEED_SYNC` | `1` | `0` schaltet den Abgleich der Standardfragen beim Start ab |
 | `FLASK_DEBUG` | `0` | Nur lokal zum Entwickeln auf `1` setzen |
 
 ## Sicherheit

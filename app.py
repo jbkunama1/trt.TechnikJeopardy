@@ -2,6 +2,7 @@ import hmac
 import logging
 import os
 import sqlite3
+import threading
 import time
 from functools import wraps
 from urllib.parse import urlparse
@@ -25,6 +26,8 @@ SEED_FILES = [
     os.path.join(BASE_DIR, "seed_questions_more.sql"),
     os.path.join(BASE_DIR, "seed_questions_round3.sql"),
 ]
+# Standardfragen bei jedem Start abgleichen (fehlende werden ergaenzt). SEED_SYNC=0 schaltet das ab.
+SEED_SYNC = os.environ.get("SEED_SYNC", "1") != "0"
 
 # Alte Datenbank, die beim ersten Start automatisch uebernommen wird
 LEGACY_DB_PATHS = [
@@ -42,6 +45,13 @@ DEBUG_MODE = os.environ.get("FLASK_DEBUG", "0") == "1"
 DEFAULT_POINT_LEVELS = "100,200,300,400,500"
 VALID_GRADES = {"6", "7", "8", "9", "10"}
 
+DEFAULT_CATEGORIES = [
+    ("Werkstoffe und Produkte", "Bildungsplan Technik 2016: Werkstoffe und Produkte"),
+    ("Systeme und Prozesse", "Bildungsplan Technik 2016: Systeme und Prozesse"),
+    ("Mensch und Technik", "Produktion, Versorgung/Entsorgung, Bautechnik, Mobilitaet"),
+    ("Medienbildung & Digitalisierung", "Digitale Technik, IT-Sicherheit, Medienbildung"),
+]
+
 if not ADMIN_ENABLED:
     log.warning(
         "ADMIN_PASSWORD fehlt oder ist unsicher/Standard - Adminbereich ist DEAKTIVIERT. "
@@ -52,6 +62,9 @@ if not ADMIN_ENABLED:
 MAX_FAILS = 5
 LOCK_SECONDS = 300
 _fails = {}
+
+_init_lock = threading.Lock()
+_seeded = False
 
 
 def client_ip():
@@ -177,31 +190,14 @@ def security_headers(resp):
     return resp
 
 
-def run_seed_files(conn):
-    cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) AS c FROM questions")
-    if cur.fetchone()["c"] > 0:
-        return
-    for seed_file in SEED_FILES:
-        if os.path.exists(seed_file):
-            with open(seed_file, "r", encoding="utf-8") as f:
-                conn.executescript(f.read())
-        else:
-            log.warning("Seed-Datei fehlt: %s", seed_file)
-    conn.commit()
-
-
-def init_db():
-    migrate_legacy_db()
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
+def create_schema(conn):
+    conn.execute(
         "CREATE TABLE IF NOT EXISTS categories ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "name TEXT NOT NULL, "
         "description TEXT)"
     )
-    cur.execute(
+    conn.execute(
         "CREATE TABLE IF NOT EXISTS questions ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "category_id INTEGER NOT NULL, "
@@ -213,34 +209,111 @@ def init_db():
         "hint TEXT, "
         "FOREIGN KEY (category_id) REFERENCES categories(id))"
     )
-    cur.execute(
+    conn.execute(
         "CREATE TABLE IF NOT EXISTS settings ("
         "key TEXT PRIMARY KEY, "
         "value TEXT NOT NULL)"
     )
 
-    cur.execute("SELECT COUNT(*) AS c FROM categories")
-    if cur.fetchone()["c"] == 0:
-        categories = [
-            ("Werkstoffe und Produkte", "Bildungsplan Technik 2016: Werkstoffe und Produkte"),
-            ("Systeme und Prozesse", "Bildungsplan Technik 2016: Systeme und Prozesse"),
-            ("Mensch und Technik", "Produktion, Versorgung/Entsorgung, Bautechnik, Mobilitaet"),
-            ("Medienbildung & Digitalisierung", "Digitale Technik, IT-Sicherheit, Medienbildung"),
-        ]
-        cur.executemany(
-            "INSERT INTO categories (name, description) VALUES (?, ?)", categories
+
+def exec_script_tolerant(conn, text):
+    """Fuehrt ein SQL-Skript Statement fuer Statement aus und ueberspringt Fehler."""
+    buf = ""
+    errors = 0
+    for line in text.splitlines(keepends=True):
+        buf += line
+        if sqlite3.complete_statement(buf):
+            try:
+                conn.execute(buf)
+            except sqlite3.Error:
+                errors += 1
+            buf = ""
+    return errors
+
+
+def sync_seed_questions(conn):
+    """Ergaenzt fehlende Standardfragen aus den Seed-Dateien (Abgleich ueber den Fragetext).
+
+    Die Seed-Dateien laufen in einer temporaeren In-Memory-DB (ihre DELETE-Statements
+    treffen so nie die echte Datenbank). Eigene und bearbeitete Fragen bleiben unangetastet.
+    """
+    cur = conn.cursor()
+    existing = {r[0] for r in cur.execute("SELECT question_text FROM questions")}
+    cat_ids = {r["name"]: r["id"] for r in cur.execute("SELECT id, name FROM categories")}
+    added = 0
+    for seed_file in SEED_FILES:
+        if not os.path.exists(seed_file):
+            log.warning("Seed-Datei fehlt: %s", seed_file)
+            continue
+        with open(seed_file, "r", encoding="utf-8") as f:
+            text = f.read()
+        scratch = sqlite3.connect(":memory:")
+        scratch.row_factory = sqlite3.Row
+        create_schema(scratch)
+        for idx, (name, desc) in enumerate(DEFAULT_CATEGORIES, start=1):
+            scratch.execute(
+                "INSERT INTO categories (id, name, description) VALUES (?, ?, ?)",
+                (idx, name, desc),
+            )
+        errors = exec_script_tolerant(scratch, text)
+        if errors:
+            log.warning("Seed-Datei %s: %d Statements uebersprungen.", seed_file, errors)
+        scratch_cats = {r["id"]: r["name"] for r in scratch.execute("SELECT id, name FROM categories")}
+        rows = scratch.execute(
+            "SELECT category_id, grade_level, competence_area, points, question_text, "
+            "answer_text, hint FROM questions ORDER BY id"
+        ).fetchall()
+        for q in rows:
+            if q["question_text"] in existing:
+                continue
+            cat_name = scratch_cats.get(q["category_id"])
+            if cat_name is None:
+                continue
+            cid = cat_ids.get(cat_name)
+            if cid is None:
+                cur.execute("INSERT INTO categories (name, description) VALUES (?, ?)", (cat_name, ""))
+                cid = cur.lastrowid
+                cat_ids[cat_name] = cid
+            cur.execute(
+                "INSERT INTO questions "
+                "(category_id, grade_level, competence_area, points, question_text, answer_text, hint) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (cid, q["grade_level"], q["competence_area"], q["points"],
+                 q["question_text"], q["answer_text"], q["hint"]),
+            )
+            existing.add(q["question_text"])
+            added += 1
+        scratch.close()
+    conn.commit()
+    log.info("Seed-Abgleich fertig: %d fehlende Standardfragen ergaenzt.", added)
+
+
+def init_db():
+    global _seeded
+    with _init_lock:
+        migrate_legacy_db()
+        conn = get_db()
+        create_schema(conn)
+
+        if conn.execute("SELECT COUNT(*) FROM categories").fetchone()[0] == 0:
+            conn.executemany(
+                "INSERT INTO categories (name, description) VALUES (?, ?)", DEFAULT_CATEGORIES
+            )
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('shuffle_enabled', '1')")
+        conn.execute(
+            "INSERT OR IGNORE INTO settings (key, value) VALUES ('point_levels', ?)",
+            (DEFAULT_POINT_LEVELS,),
         )
         conn.commit()
 
-    cur.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('shuffle_enabled', '1')")
-    cur.execute(
-        "INSERT OR IGNORE INTO settings (key, value) VALUES ('point_levels', ?)",
-        (DEFAULT_POINT_LEVELS,),
-    )
-    conn.commit()
-
-    run_seed_files(conn)
-    conn.close()
+        if SEED_SYNC and not _seeded:
+            try:
+                sync_seed_questions(conn)
+            except Exception:
+                conn.rollback()
+                log.exception("Seed-Abgleich fehlgeschlagen")
+            _seeded = True
+        conn.close()
 
 
 def get_setting(key, default=""):

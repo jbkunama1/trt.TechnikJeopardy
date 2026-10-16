@@ -45,7 +45,7 @@ const settingsBtn = document.getElementById('settings-btn');
 const gradeFilterSelect = document.getElementById('grade-filter');
 
 function buildNameInputs() {
-  const n = parseInt(teamCountInput.value) || 2;
+  const n = Math.min(6, Math.max(1, parseInt(teamCountInput.value) || 2));
   teamNameInputs.innerHTML = '';
   for (let i = 0; i < n; i++) {
     const existing = teams[i] ? teams[i].name : `Team ${i + 1}`;
@@ -75,24 +75,20 @@ settingsBtn.addEventListener('click', () => {
 });
 
 // ===== GRADE FILTER =====
-// Konsistente Filterlogik: unterstuetzt sowohl Einzelklassen ('7')
-// als auch historische Bereiche ('7-8', '8-9', '9-10') im gleichen Datenbestand.
-function gradeMatches(gradeLevel, selectedGrade) {
-  if (!selectedGrade) return true;
-  if (!gradeLevel) return false;
-  return gradeLevel.split('-').map(p => p.trim()).includes(selectedGrade);
-}
+// Der Filter laeuft serverseitig (/play?grade=7). So werden die Felder des
+// Spielbretts direkt aus passenden Fragen gebildet und bleiben nicht leer.
+// Einzelklassen ('7') und Bereiche ('7-8') werden vom Server erkannt.
+const urlGrade = new URLSearchParams(location.search).get('grade') || '';
+gradeFilterSelect.value = urlGrade;
 
 function applyGradeFilter() {
   const grade = gradeFilterSelect.value;
-  document.querySelectorAll('.question-tile').forEach(tile => {
-    if (tile.disabled) return;
-    const tileGrade = tile.dataset.gradeLevel || '';
-    tile.style.display = gradeMatches(tileGrade, grade) ? '' : 'none';
-  });
+  if (grade === urlGrade) return;
+  const params = new URLSearchParams(location.search);
+  if (grade) params.set('grade', grade); else params.delete('grade');
+  const qs = params.toString();
+  location.href = location.pathname + (qs ? '?' + qs : '');
 }
-
-gradeFilterSelect.addEventListener('change', applyGradeFilter);
 
 // ===== QUESTION MODAL =====
 const modal = document.getElementById('question-modal');

@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   trt-technikjeopardy:
     build: .
@@ -11,8 +9,9 @@ services:
     environment:
       - FLASK_DEBUG=0
       - PORT=5000
-      - ADMIN_USER=admin
-      - ADMIN_PASSWORD=bitte-aendern
+      - DB_PATH=/app/data/jeopardy.db
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?ADMIN_PASSWORD muss gesetzt werden}
     restart: unless-stopped
 
 volumes:

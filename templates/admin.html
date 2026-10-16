@@ -1,54 +1,75 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="utf-8">
-  <title>Admin - Technik-Jeopardy</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
-</head>
-<body class="bg">
-  <header class="header">
-    <h1>Admin - Fragenpool</h1>
-    <p><a href="{{ url_for('play') }}" class="link">Zum Spiel</a></p>
-  </header>
+{% extends "base.html" %}
+{% block title %}Admin &ndash; Technik-Jeopardy{% endblock %}
+{% block subtitle %}Admin{% endblock %}
+{% block actions %}
+  <a class="nav-link active" href="{{ url_for('admin') }}">Fragen</a>
+  <a class="nav-link" href="{{ url_for('admin_settings') }}">Einstellungen</a>
+  <a class="nav-link" href="{{ url_for('play') }}">Spiel</a>
+{% endblock %}
+{% block content %}
   <main class="main">
-    <section class="admin-actions">
-      <a class="btn-primary" href="{{ url_for('admin_new') }}">Neue Frage anlegen</a>
-      <a class="btn-secondary" href="{{ url_for('admin_settings') }}">Einstellungen</a>
-    </section>
-    <section class="admin-table-wrapper">
-      <table class="admin-table">
+    <h1 class="page-title">Fragenpool</h1>
+    <div class="toolbar">
+      <div class="toolbar-row">
+        <input id="q-filter" type="search" placeholder="Suchen &hellip;" aria-label="Fragen durchsuchen">
+        <select id="cat-filter" aria-label="Kategorie filtern">
+          <option value="">Alle Kategorien</option>
+          {% for c in categories %}<option value="{{ c.name }}">{{ c.name }}</option>{% endfor %}
+        </select>
+        <a class="btn-primary" href="{{ url_for('admin_new') }}">+ Neue Frage</a>
+      </div>
+      <span class="count" id="row-count"></span>
+    </div>
+    <div class="admin-table-wrapper">
+      <table class="admin-table" id="q-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Kategorie</th>
-            <th>Punkte</th>
-            <th>Frage</th>
-            <th>Klasse</th>
-            <th>Kompetenzbereich</th>
-            <th>Aktionen</th>
+            <th>ID</th><th>Kategorie</th><th>Punkte</th><th>Frage</th><th>Klasse</th><th>Kompetenz</th><th>Aktionen</th>
           </tr>
         </thead>
         <tbody>
           {% for q in questions %}
-          <tr>
-            <td>{{ q.id }}</td>
-            <td>{{ q.category_name }}</td>
-            <td>{{ q.points }}</td>
-            <td>{{ q.question_text }}</td>
-            <td>{{ q.grade_level }}</td>
-            <td>{{ q.competence_area }}</td>
-            <td>
-              <a href="{{ url_for('admin_edit', qid=q.id) }}">Bearbeiten</a>
-              <form action="{{ url_for('admin_delete', qid=q.id) }}" method="post" style="display:inline" onsubmit="return confirm('Wirklich loeschen?');">
-                <button type="submit">Loeschen</button>
+          <tr data-cat="{{ q.category_name }}">
+            <td data-label="ID">{{ q.id }}</td>
+            <td data-label="Kategorie"><span class="pill">{{ q.category_name }}</span></td>
+            <td data-label="Punkte"><span class="pts">{{ q.points }}</span></td>
+            <td data-label="Frage">{{ q.question_text }}</td>
+            <td data-label="Klasse">{{ q.grade_level or '' }}</td>
+            <td data-label="Kompetenz">{{ q.competence_area or '' }}</td>
+            <td class="actions">
+              <a class="btn-secondary btn-small" href="{{ url_for('admin_edit', qid=q.id) }}">Bearbeiten</a>
+              <form action="{{ url_for('admin_delete', qid=q.id) }}" method="post" onsubmit="return confirm('Wirklich loeschen?');">
+                <button type="submit" class="btn-danger">L&ouml;schen</button>
               </form>
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
-    </section>
+    </div>
   </main>
-</body>
-</html>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var q = document.getElementById('q-filter');
+  var cat = document.getElementById('cat-filter');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#q-table tbody tr'));
+  var count = document.getElementById('row-count');
+  function apply() {
+    var term = q.value.trim().toLowerCase();
+    var c = cat.value;
+    var shown = 0;
+    rows.forEach(function (r) {
+      var ok = (!c || r.getAttribute('data-cat') === c) && (!term || r.textContent.toLowerCase().indexOf(term) !== -1);
+      r.style.display = ok ? '' : 'none';
+      if (ok) shown++;
+    });
+    count.textContent = shown + ' von ' + rows.length + ' Fragen';
+  }
+  q.addEventListener('input', apply);
+  cat.addEventListener('change', apply);
+  apply();
+})();
+</script>
+{% endblock %}

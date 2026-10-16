@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="{{ theme }}">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Technik-Jeopardy{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="{{ theme_bar }}">
+  <link rel="icon" href="{{ url_for('logo') }}">
+  <link href="{{ url_for('static', filename='styles.css') }}?v={{ asset_v }}" rel="stylesheet">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('play') }}">
+      <img class="app-logo" src="{{ url_for('logo') }}" alt="" width="40" height="40" decoding="async">
+      <span class="brand-text"><strong>Technik-Jeopardy</strong><small>{% block subtitle %}Bildungsplan BW &middot; Sek I{% endblock %}</small></span>
+    </a>
+    <nav class="topbar-actions">{% block actions %}{% endblock %}</nav>
+  </header>
+{% block content %}{% endblock %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

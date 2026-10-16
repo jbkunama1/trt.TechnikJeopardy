@@ -1,24 +1,16 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="utf-8">
-  <title>Technik-Jeopardy</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
-</head>
-<body class="bg">
-
-  <div id="setup-modal" class="modal-backdrop">
+{% extends "base.html" %}
+{% block title %}Technik-Jeopardy{% endblock %}
+{% block actions %}<button id="settings-btn" class="btn-secondary btn-small" type="button" aria-label="Teams und Einstellungen">&#9881; Teams</button>{% endblock %}
+{% block content %}
+  <div id="setup-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="setup-title">
     <div class="modal setup-modal-inner">
-      <h2 style="margin-top:0">&#127942; Teams konfigurieren</h2>
-      <label class="setup-label">
-        Anzahl Teams (1–6):
-        <input id="team-count" type="number" min="1" max="6" value="2" style="width:60px;margin-left:.5rem">
+      <h2 id="setup-title">&#127942; Teams einrichten</h2>
+      <label class="setup-label">Anzahl Teams (1&ndash;6)
+        <input id="team-count" type="number" inputmode="numeric" min="1" max="6" value="2">
       </label>
-      <div id="team-name-inputs" style="margin-top:.75rem;display:flex;flex-direction:column;gap:.4rem"></div>
-      <label class="setup-label" style="margin-top:.75rem">
-        Klassenstufe (optional):
-        <select id="grade-filter" style="margin-left:.5rem">
+      <div id="team-name-inputs"></div>
+      <label class="setup-label">Klassenstufe (optional)
+        <select id="grade-filter">
           <option value="">Alle</option>
           <option value="6">Klasse 6</option>
           <option value="7">Klasse 7</option>
@@ -27,51 +19,50 @@
           <option value="10">Klasse 10</option>
         </select>
       </label>
-      <div style="margin-top:1.25rem">
-        <button id="start-game" class="btn-primary">&#9654; Spiel starten</button>
+      <div class="modal-actions">
+        <button id="start-game" class="btn-primary" type="button">&#9654; Spiel starten</button>
       </div>
     </div>
   </div>
 
-  <header class="header">
-    <img src="{{ root_logo_path }}" alt="trt.TechnikJeopardy Logo" class="app-logo">
-    <h1>Jeopardy &mdash; Technikunterricht</h1>
-    <p>Bildungsplan 2016 &mdash; Werkstoffe, Systeme, Mensch &amp; Technik</p>
-    <button id="settings-btn" class="btn-secondary" style="margin-top:.5rem">&#9881; Teams &amp; Einstellungen</button>
-  </header>
-
-  <div id="scoreboard" class="scoreboard"></div>
+  <div id="scoreboard" class="scoreboard" aria-live="polite"></div>
 
   <main class="main">
-    <section class="gameboard" id="gameboard">
+    {% if gameboard %}
+    <section class="gameboard" id="gameboard" style="--cols: {{ [gameboard|length, 1]|max }}">
       {% for cid, col in gameboard.items() %}
         <div class="category">
           <div class="category-title">{{ col.category_name }}</div>
           {% for q in col.questions %}
-            <button class="question-tile" data-question-id="{{ q.id }}" data-grade-level="{{ q.grade_level or '' }}">{{ q.points }}</button>
+            <button class="question-tile" type="button" data-question-id="{{ q.id }}" data-grade-level="{{ q.grade_level or '' }}">{{ q.points }}</button>
           {% endfor %}
         </div>
       {% endfor %}
     </section>
+    {% else %}
+    <p class="empty-note">Noch keine Fragen vorhanden.</p>
+    {% endif %}
   </main>
 
-  <div id="question-modal" class="modal-backdrop hidden">
+  <div id="question-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-question">
     <div class="modal">
       <div id="modal-grade-badge" class="grade-badge"></div>
-      <h2 id="modal-question" style="margin-top:.5rem"></h2>
-      <button id="show-answer" class="btn-primary">Antwort anzeigen</button>
-      <p id="modal-answer" class="hidden" style="margin-top:.75rem"></p>
+      <h2 id="modal-question"></h2>
+      <div class="modal-actions">
+        <button id="show-answer" class="btn-primary" type="button">Antwort anzeigen</button>
+      </div>
+      <p id="modal-answer" class="hidden"></p>
 
       <div id="points-section" class="hidden points-section">
-        <p style="margin:.75rem 0 .4rem;font-weight:600">Punkte vergeben an:</p>
+        <p class="points-title">Punkte vergeben an</p>
         <div id="team-score-buttons"></div>
-        <button id="no-points-btn" class="btn-secondary" style="margin-top:.5rem">Niemand &mdash; schliessen</button>
+        <button id="no-points-btn" class="btn-secondary" type="button">Niemand &ndash; weiter</button>
       </div>
 
-      <button id="close-modal" class="btn-secondary" style="margin-top:.75rem">Schliessen</button>
+      <div class="modal-actions">
+        <button id="close-modal" class="btn-ghost" type="button">Schlie&szlig;en</button>
+      </div>
     </div>
   </div>
-
-  <script src="{{ url_for('static', filename='play.js') }}"></script>
-</body>
-</html>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='play.js') }}?v={{ asset_v }}"></script>{% endblock %}

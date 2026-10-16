@@ -1,45 +1,44 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="utf-8">
-  <title>Neue Frage - Technik-Jeopardy</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
-</head>
-<body class="bg">
-  <header class="header">
-    <h1>Neue Frage anlegen</h1>
-    <p><a href="{{ url_for('admin') }}" class="link">Zurueck zur Uebersicht</a></p>
-  </header>
+{% extends "base.html" %}
+{% block title %}Neue Frage &ndash; Technik-Jeopardy{% endblock %}
+{% block subtitle %}Admin{% endblock %}
+{% block actions %}
+  <a class="nav-link active" href="{{ url_for('admin') }}">Fragen</a>
+  <a class="nav-link" href="{{ url_for('admin_settings') }}">Einstellungen</a>
+  <a class="nav-link" href="{{ url_for('play') }}">Spiel</a>
+{% endblock %}
+{% block content %}
   <main class="main">
-    <form method="post" class="form">
+    <h1 class="page-title">Neue Frage</h1>
+    <form method="post" class="form card">
       <label>Kategorie
         <select name="category_id" required>
-          {% for c in categories %}
-          <option value="{{ c.id }}">{{ c.name }}</option>
-          {% endfor %}
+          {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
         </select>
       </label>
-      <label>Punkte
-        <input type="number" name="points" value="100" required>
-      </label>
-      <label>Fragentext
+      <div class="row">
+        <label>Punkte
+          <input type="number" inputmode="numeric" name="points" min="1" value="100" required>
+        </label>
+        <label>Klassenstufe
+          <input type="text" name="grade_level" placeholder="z. B. 7 oder 7-8">
+        </label>
+      </div>
+      <label>Fragetext
         <textarea name="question_text" required></textarea>
       </label>
       <label>Antworttext
         <textarea name="answer_text" required></textarea>
       </label>
-      <label>Klassenstufe
-        <input type="text" name="grade_level" placeholder="z.B. 7">
-      </label>
       <label>Kompetenzbereich
-        <input type="text" name="competence_area" placeholder="z.B. 3.3.1 Werkstoffe und Produkte">
+        <input type="text" name="competence_area">
       </label>
-      <label>Hinweis (optional)
+      <label>Hinweis <span class="hint">(optional)</span>
         <textarea name="hint"></textarea>
       </label>
-      <button class="btn-primary" type="submit">Speichern</button>
+      <div class="form-actions">
+        <button class="btn-primary" type="submit">Speichern</button>
+        <a class="btn-ghost" href="{{ url_for('admin') }}">Abbrechen</a>
+      </div>
     </form>
   </main>
-</body>
-</html>
+{% endblock %}

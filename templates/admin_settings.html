@@ -1,38 +1,58 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="utf-8">
-  <title>Spiel-Einstellungen &mdash; trt.TechnikJeopardy</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
-</head>
-<body class="bg">
-  <header class="header">
-    <h1>&#9881; Spiel-Einstellungen</h1>
-    <p><a class="link" href="{{ url_for('admin') }}">&larr; Zurueck zum Adminbereich</a></p>
-  </header>
-
+{% extends "base.html" %}
+{% block title %}Einstellungen &ndash; Technik-Jeopardy{% endblock %}
+{% block subtitle %}Admin{% endblock %}
+{% block actions %}
+  <a class="nav-link" href="{{ url_for('admin') }}">Fragen</a>
+  <a class="nav-link active" href="{{ url_for('admin_settings') }}">Einstellungen</a>
+  <a class="nav-link" href="{{ url_for('play') }}">Spiel</a>
+{% endblock %}
+{% block content %}
   <main class="main">
-    <form class="form" method="post" style="max-width:500px">
-      <label>
-        <input type="checkbox" name="shuffle_enabled" {% if shuffle_enabled %}checked{% endif %}>
-        Fragen bei jedem Spielstart neu zufaellig mischen
-      </label>
+    <h1 class="page-title">Einstellungen</h1>
+    <form class="form" method="post">
+      <section class="card form">
+        <h2 style="margin:0">Design</h2>
+        <p class="hint" style="margin:0">Das Theme gilt f&uuml;r das Spiel und den Adminbereich. Beim Anklicken siehst du sofort eine Vorschau, gespeichert wird erst mit &bdquo;Speichern&ldquo;.</p>
+        <div class="theme-grid" id="theme-grid">
+          {% for key, t in themes.items() %}
+          <label class="theme-card">
+            <input class="visually-hidden" type="radio" name="theme" value="{{ key }}" {% if key == theme %}checked{% endif %}>
+            <span class="theme-body">
+              <span class="swatches">{% for c in t.swatches %}<i style="background:{{ c }}"></i>{% endfor %}</span>
+              <span class="theme-name">{{ t.label }}</span>
+              <span class="theme-desc">{{ t.desc }}</span>
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      </section>
 
-      <label>
-        Punktestufen pro Kategorie (kommagetrennt, in Punkten):
-        <input type="text" name="point_levels" value="{{ point_levels }}" placeholder="100,200,300,400,500">
-      </label>
+      <section class="card form">
+        <h2 style="margin:0">Spiel</h2>
+        <label class="switch-row">
+          <span>Fragen bei jedem Spielstart zuf&auml;llig mischen
+            <span class="hint" style="display:block">Aus: Es wird immer die &auml;lteste passende Frage gezeigt.</span></span>
+          <input class="switch" type="checkbox" name="shuffle_enabled" {% if shuffle_enabled %}checked{% endif %}>
+        </label>
+        <label>Punktestufen pro Kategorie
+          <input type="text" name="point_levels" value="{{ point_levels }}" placeholder="100,200,300,400,500">
+          <span class="hint">Kommagetrennt, z. B. <code>100,200,300,400,500</code> ergibt 5 Felder pro Kategorie.</span>
+        </label>
+      </section>
 
-      <p style="font-size:0.85rem;opacity:0.75">
-        Beispiel: <code>100,200,300,400,500</code> erzeugt pro Kategorie 5 Felder.
-        Bei aktiviertem Mischen wird pro Feld jedes Mal eine zufaellige passende
-        Frage aus dem Fragenpool gezogen. Ist das Mischen deaktiviert, wird
-        immer die gleiche (aelteste passende) Frage angezeigt.
-      </p>
-
-      <button type="submit" class="btn-primary" style="align-self:flex-start">Speichern</button>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Speichern</button>
+        <a class="btn-ghost" href="{{ url_for('admin') }}">Zur&uuml;ck</a>
+      </div>
     </form>
   </main>
-</body>
-</html>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('theme-grid').addEventListener('change', function (e) {
+  if (e.target && e.target.name === 'theme') {
+    document.documentElement.setAttribute('data-theme', e.target.value);
+  }
+});
+</script>
+{% endblock %}

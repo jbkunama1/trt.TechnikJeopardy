@@ -45,6 +45,26 @@ DEBUG_MODE = os.environ.get("FLASK_DEBUG", "0") == "1"
 DEFAULT_POINT_LEVELS = "100,200,300,400,500"
 VALID_GRADES = {"6", "7", "8", "9", "10"}
 
+# Themes (Auswahl im Adminbereich, gilt global). Die Farben stehen in static/styles.css.
+DEFAULT_THEME = "nacht"
+THEMES = {
+    "nacht": {"label": "Nacht", "desc": "Dunkles Blau-Violett (Standard)", "bar": "#0b1020",
+              "swatches": ["#0b1020", "#6d7cff", "#ffd166"]},
+    "hell": {"label": "Hell", "desc": "Klar und hell, gut bei Tageslicht", "bar": "#f4f6fb",
+             "swatches": ["#f4f6fb", "#4f46e5", "#b45309"]},
+    "auto": {"label": "Automatisch", "desc": "Folgt dem Ger\u00e4t (hell/dunkel)", "bar": "#0b1020",
+             "swatches": ["#0b1020", "#f4f6fb", "#6d7cff"]},
+    "neon": {"label": "Neon", "desc": "Cyberpunk mit Leuchteffekt", "bar": "#07040f",
+             "swatches": ["#07040f", "#ff2bd6", "#00f0ff"]},
+    "sunset": {"label": "Sunset", "desc": "Warm: Orange und Pink", "bar": "#1a0f14",
+               "swatches": ["#1a0f14", "#ff7a45", "#ff4d8d"]},
+    "wald": {"label": "Wald", "desc": "Ruhiges Gr\u00fcn", "bar": "#0a1511",
+             "swatches": ["#0a1511", "#34d399", "#a3e635"]},
+    "kontrast": {"label": "Hoher Kontrast", "desc": "Schwarz, Wei\u00df, Gelb \u2013 gut lesbar", "bar": "#000000",
+                 "swatches": ["#000000", "#ffee00", "#ffffff"]},
+}
+ASSET_V = str(int(time.time()))
+
 DEFAULT_CATEGORIES = [
     ("Werkstoffe und Produkte", "Bildungsplan Technik 2016: Werkstoffe und Produkte"),
     ("Systeme und Prozesse", "Bildungsplan Technik 2016: Systeme und Prozesse"),
@@ -304,6 +324,10 @@ def init_db():
             "INSERT OR IGNORE INTO settings (key, value) VALUES ('point_levels', ?)",
             (DEFAULT_POINT_LEVELS,),
         )
+        conn.execute(
+            "INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', ?)",
+            (DEFAULT_THEME,),
+        )
         conn.commit()
 
         if SEED_SYNC and not _seeded:
@@ -345,6 +369,25 @@ def get_point_levels():
 
 def is_shuffle_enabled():
     return get_setting("shuffle_enabled", "1") == "1"
+
+
+def get_theme():
+    value = get_setting("theme", DEFAULT_THEME)
+    return value if value in THEMES else DEFAULT_THEME
+
+
+@app.context_processor
+def inject_theme():
+    try:
+        current = get_theme()
+    except sqlite3.Error:
+        current = DEFAULT_THEME
+    return {
+        "theme": current,
+        "theme_bar": THEMES[current]["bar"],
+        "themes": THEMES,
+        "asset_v": ASSET_V,
+    }
 
 
 def parse_question_form(conn):
@@ -436,7 +479,6 @@ def play():
         "play.html",
         gameboard=gameboard,
         selected_grade=grade,
-        root_logo_path="/trtTechnikJeopardy_Logo.png",
     )
 
 
@@ -492,6 +534,9 @@ def admin_settings():
         point_levels = ",".join(cleaned) if cleaned else DEFAULT_POINT_LEVELS
         set_setting("shuffle_enabled", shuffle_enabled)
         set_setting("point_levels", point_levels)
+        new_theme = request.form.get("theme", "")
+        if new_theme in THEMES:
+            set_setting("theme", new_theme)
         return redirect(url_for("admin_settings"))
 
     return render_template(

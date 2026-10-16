@@ -2,6 +2,7 @@
 let teams = [];
 let currentPoints = 0;
 let currentTile = null;
+let lastChanged = -1;
 
 function saveTeams() {
   localStorage.setItem('jeopardy_teams', JSON.stringify(teams));
@@ -14,24 +15,32 @@ function loadTeams() {
   } catch(e) { teams = []; }
 }
 
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // ===== SCOREBOARD =====
 function renderScoreboard() {
   const sb = document.getElementById('scoreboard');
   if (!teams.length) { sb.innerHTML = ''; return; }
+  const max = Math.max.apply(null, teams.map(t => t.score));
+  const hasLeader = max > 0 && teams.filter(t => t.score === max).length === 1;
   sb.innerHTML = teams.map((t, i) =>
-    `<div class="team-card">
+    `<div class="team-card${hasLeader && t.score === max ? ' leader' : ''}">
       <span class="team-name">${escHtml(t.name)}</span>
-      <span class="team-score" id="score-${i}">${t.score}</span>
+      <span class="team-score${i === lastChanged ? ' bump' : ''}" id="score-${i}">${t.score}</span>
       <div class="score-btns">
-        <button class="score-adj" onclick="adjustScore(${i}, 100)">+100</button>
-        <button class="score-adj" onclick="adjustScore(${i}, -100)">-100</button>
+        <button class="score-adj" type="button" onclick="adjustScore(${i}, -100)" aria-label="100 Punkte abziehen">&minus;100</button>
+        <button class="score-adj" type="button" onclick="adjustScore(${i}, 100)" aria-label="100 Punkte addieren">+100</button>
       </div>
     </div>`
   ).join('');
+  lastChanged = -1;
 }
 
 window.adjustScore = (idx, delta) => {
   teams[idx].score += delta;
+  lastChanged = idx;
   saveTeams();
   renderScoreboard();
 };
@@ -44,13 +53,17 @@ const startBtn = document.getElementById('start-game');
 const settingsBtn = document.getElementById('settings-btn');
 const gradeFilterSelect = document.getElementById('grade-filter');
 
+function setModalOpen(open) {
+  document.body.classList.toggle('modal-open', open);
+}
+
 function buildNameInputs() {
   const n = Math.min(6, Math.max(1, parseInt(teamCountInput.value) || 2));
   teamNameInputs.innerHTML = '';
   for (let i = 0; i < n; i++) {
     const existing = teams[i] ? teams[i].name : `Team ${i + 1}`;
     teamNameInputs.innerHTML +=
-      `<input class="team-name-input" type="text" placeholder="Team ${i+1}" value="${escHtml(existing)}" maxlength="24">`;
+      `<input class="team-name-input" type="text" placeholder="Team ${i+1}" value="${escHtml(existing)}" maxlength="24" aria-label="Name Team ${i+1}">`;
   }
 }
 
@@ -65,6 +78,7 @@ startBtn.addEventListener('click', () => {
   saveTeams();
   renderScoreboard();
   setupModal.classList.add('hidden');
+  setModalOpen(false);
   applyGradeFilter();
 });
 
@@ -72,6 +86,7 @@ settingsBtn.addEventListener('click', () => {
   teamCountInput.value = teams.length || 2;
   buildNameInputs();
   setupModal.classList.remove('hidden');
+  setModalOpen(true);
 });
 
 // ===== GRADE FILTER =====
@@ -101,17 +116,13 @@ const noPointsBtn = document.getElementById('no-points-btn');
 const teamScoreButtons = document.getElementById('team-score-buttons');
 const pointsSection = document.getElementById('points-section');
 
-function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 function buildTeamScoreButtons(points) {
   if (!teams.length) {
     teamScoreButtons.innerHTML = '<em style="opacity:.6">Keine Teams konfiguriert.</em>';
     return;
   }
   teamScoreButtons.innerHTML = teams.map((t, i) =>
-    `<button class="btn-team-score" onclick="awardPoints(${i}, ${points})">
+    `<button class="btn-team-score" type="button" onclick="awardPoints(${i}, ${points})">
       +${points} &rarr; ${escHtml(t.name)}
     </button>`
   ).join('');
@@ -119,6 +130,7 @@ function buildTeamScoreButtons(points) {
 
 window.awardPoints = (teamIdx, points) => {
   teams[teamIdx].score += points;
+  lastChanged = teamIdx;
   saveTeams();
   renderScoreboard();
   closeModal();
@@ -127,39 +139,58 @@ window.awardPoints = (teamIdx, points) => {
 function closeModal() {
   if (currentTile) {
     currentTile.disabled = true;
-    currentTile.style.opacity = '0.25';
+    currentTile.classList.add('done');
   }
   modal.classList.add('hidden');
   pointsSection.classList.add('hidden');
   modalAnswer.classList.add('hidden');
+  showAnswerBtn.classList.remove('hidden');
   currentTile = null;
   currentPoints = 0;
+  setModalOpen(!setupModal.classList.contains('hidden'));
 }
 
 closeBtn.addEventListener('click', closeModal);
 noPointsBtn.addEventListener('click', closeModal);
 
+modal.addEventListener('click', (e) => {
+  if (e.target === modal) closeModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+});
+
 showAnswerBtn.addEventListener('click', () => {
   modalAnswer.classList.remove('hidden');
   pointsSection.classList.remove('hidden');
+  showAnswerBtn.classList.add('hidden');
   buildTeamScoreButtons(currentPoints);
 });
 
 // ===== TILE CLICKS =====
 document.querySelectorAll('.question-tile').forEach(tile => {
   tile.addEventListener('click', async () => {
+    if (currentTile || tile.disabled) return;
     currentTile = tile;
-    const id = tile.dataset.questionId;
-    const res = await fetch(`/api/question/${id}`);
-    if (!res.ok) return;
-    const data = await res.json();
-    currentPoints = data.points;
-    modalQuestion.textContent = data.question_text;
-    modalAnswer.textContent = data.answer_text;
-    modalGradeBadge.textContent = data.grade_level ? `Klasse ${data.grade_level}` : '';
-    modalAnswer.classList.add('hidden');
-    pointsSection.classList.add('hidden');
-    modal.classList.remove('hidden');
+    try {
+      const res = await fetch(`/api/question/${tile.dataset.questionId}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      currentPoints = data.points;
+      modalQuestion.textContent = data.question_text;
+      modalAnswer.textContent = data.answer_text;
+      modalGradeBadge.textContent = data.grade_level ? `Klasse ${data.grade_level}` : '';
+      modalAnswer.classList.add('hidden');
+      pointsSection.classList.add('hidden');
+      showAnswerBtn.classList.remove('hidden');
+      modal.classList.remove('hidden');
+      setModalOpen(true);
+      showAnswerBtn.focus({ preventScroll: true });
+    } catch (err) {
+      currentTile = null;
+      alert('Die Frage konnte nicht geladen werden. Bitte erneut versuchen.');
+    }
   });
 });
 
@@ -168,6 +199,7 @@ loadTeams();
 buildNameInputs();
 if (!teams.length) {
   setupModal.classList.remove('hidden');
+  setModalOpen(true);
 } else {
   setupModal.classList.add('hidden');
   renderScoreboard();

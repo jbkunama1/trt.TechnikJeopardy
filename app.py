@@ -127,8 +127,6 @@ def migrate_legacy_db():
     for legacy in LEGACY_DB_PATHS:
         if not os.path.isfile(legacy):
             continue
-        if os.path.abspath(legacy) == os.path.abspath(DB_PATH):
-            continue
         src = None
         dst = None
         try:
@@ -255,11 +253,7 @@ def exec_script_tolerant(conn, text):
 
 
 def sync_seed_questions(conn):
-    """Ergaenzt fehlende Standardfragen aus den Seed-Dateien (Abgleich ueber den Fragetext).
-
-    Die Seed-Dateien laufen in einer temporaeren In-Memory-DB (ihre DELETE-Statements
-    treffen so nie die echte Datenbank). Eigene und bearbeitete Fragen bleiben unangetastet.
-    """
+    """Ergaenzt fehlende Standardfragen aus den Seed-Dateien (Abgleich ueber den Fragetext)."""
     cur = conn.cursor()
     existing = {r[0] for r in cur.execute("SELECT question_text FROM questions")}
     cat_ids = {r["name"]: r["id"] for r in cur.execute("SELECT id, name FROM categories")}
@@ -419,28 +413,8 @@ def parse_question_form(conn):
     }
 
 
-@app.route("/")
-def index():
-    return redirect(url_for("play"))
-
-
-@app.route("/healthz")
-def healthz():
-    return jsonify({"status": "ok"})
-
-
-@app.route("/trtTechnikJeopardy_Logo.png")
-def logo():
-    return send_from_directory(BASE_DIR, "trtTechnikJeopardy_Logo.png")
-
-
-@app.route("/play")
-def play():
-    init_db()
-    grade = request.args.get("grade", "").strip()
-    if grade not in VALID_GRADES:
-        grade = ""
-
+def build_gameboard(grade):
+    """Erzeugt das Spielbrett fuer /play und /present."""
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT id, name FROM categories ORDER BY id")
@@ -449,7 +423,6 @@ def play():
     point_levels = get_point_levels()
     order_clause = "ORDER BY RANDOM() LIMIT 1" if is_shuffle_enabled() else "ORDER BY id LIMIT 1"
 
-    # Klassenfilter serverseitig: Einzelklasse ('7') und Bereiche ('7-8') werden erkannt
     grade_sql, grade_params = "", []
     if grade:
         grade_sql = " AND (grade_level = ? OR grade_level LIKE ? OR grade_level LIKE ?)"
@@ -478,8 +451,50 @@ def play():
                 )
 
     conn.close()
+    return gameboard
+
+
+@app.route("/")
+def index():
+    return redirect(url_for("play"))
+
+
+@app.route("/healthz")
+def healthz():
+    return jsonify({"status": "ok"})
+
+
+@app.route("/trtTechnikJeopardy_Logo.png")
+def logo():
+    return send_from_directory(BASE_DIR, "trtTechnikJeopardy_Logo.png")
+
+
+@app.route("/play")
+def play():
+    init_db()
+    grade = request.args.get("grade", "").strip()
+    if grade not in VALID_GRADES:
+        grade = ""
+
+    gameboard = build_gameboard(grade)
     return render_template(
         "play.html",
+        gameboard=gameboard,
+        selected_grade=grade,
+    )
+
+
+@app.route("/present")
+def present():
+    """Beamer-/Praesentationsansicht ohne Navigation und mit grossen Kacheln."""
+    init_db()
+    grade = request.args.get("grade", "").strip()
+    if grade not in VALID_GRADES:
+        grade = ""
+
+    gameboard = build_gameboard(grade)
+    return render_template(
+        "present.html",
         gameboard=gameboard,
         selected_grade=grade,
     )
@@ -531,7 +546,6 @@ def admin_home():
 
 @app.route("/admin/logout")
 def admin_logout():
-    # 401 veranlasst den Browser, die gespeicherte Anmeldung zu verwerfen (browserabhaengig)
     body = (
         '<!doctype html><html lang="de"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'

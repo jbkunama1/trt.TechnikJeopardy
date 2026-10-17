@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Technik-Jeopardy – Präsentation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='present.css') }}?v={{ asset_v }}">
+</head>
+<body>
+  <header class="present-header">
+    <div class="present-title">
+      <span class="logo-dot"></span>
+      Technik-Jeopardy
+      {% if selected_grade %}<span class="grade-pill">Klasse {{ selected_grade }}</span>{% endif %}
+    </div>
+    <div class="present-actions">
+      <button id="fullscreen-btn" class="present-btn" type="button">&#9974; Vollbild</button>
+      <a class="present-btn ghost" href="{{ url_for('play', grade=selected_grade) if selected_grade else url_for('play') }}">&#8592; Zurück</a>
+    </div>
+  </header>
+
+  <div id="scoreboard" class="present-scoreboard" aria-live="polite"></div>
+
+  <main class="present-main">
+    {% if gameboard %}
+    <section class="present-board" id="gameboard" style="--cols: {{ [gameboard|length, 1]|max }}">
+      {% for cid, col in gameboard.items() %}
+        <div class="present-category">
+          <div class="present-category-title">{{ col.category_name }}</div>
+          {% for q in col.questions %}
+            <button class="present-tile" type="button" data-question-id="{{ q.id }}">{{ q.points }}</button>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </section>
+    {% else %}
+    <p class="present-empty">Noch keine Fragen vorhanden.</p>
+    {% endif %}
+  </main>
+
+  <div id="question-modal" class="present-modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-question">
+    <div class="present-modal-inner">
+      <div id="modal-points" class="present-points"></div>
+      <h2 id="modal-question"></h2>
+      <div class="present-modal-actions">
+        <button id="show-answer" class="present-btn primary" type="button">Antwort anzeigen</button>
+      </div>
+      <p id="modal-answer" class="present-answer hidden"></p>
+
+      <div id="points-section" class="hidden">
+        <p class="present-points-title">Punkte vergeben an</p>
+        <div id="team-score-buttons" class="present-team-buttons"></div>
+        <button id="no-points-btn" class="present-btn ghost" type="button">Niemand &ndash; weiter</button>
+      </div>
+
+      <div class="present-modal-actions">
+        <button id="close-modal" class="present-btn ghost" type="button">Schlie&szlig;en</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='present.js') }}?v={{ asset_v }}"></script>
+</body>
+</html>
